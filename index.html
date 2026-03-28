@@ -172,8 +172,6 @@ tr:hover { background: rgba(51,65,85,0.3); }
     <a href="#calendar">대회 캘린더</a>
     <a href="#latest">최근 대회</a>
     <a href="#comparator">선수 비교</a>
-    <a href="#vs-jungsun">vs 오정선</a>
-    <a href="#vs-yunji">vs 차윤지</a>
     <a href="#analysis">분석</a>
 </nav>
 
@@ -247,43 +245,14 @@ tr:hover { background: rgba(51,65,85,0.3); }
 
     <!-- 선수 비교기 -->
     <div class="section" id="comparator">
-        <h2>선수 비교 <span>(검색해서 비교)</span></h2>
+        <h2>선수 비교 <span>(최대 5명)</span></h2>
         <div class="cmp-search">
-            <input type="text" id="cmpLastName" placeholder="성 (영문, 예: Kim)">
-            <input type="text" id="cmpFirstName" placeholder="이름 (영문, 예: Ha-El)">
+            <input type="text" id="cmpName" placeholder="선수 이름 (영문, 예: Oh Jeong-Seon)" onkeydown="if(event.key==='Enter')searchSkater()">
             <button onclick="searchSkater()">검색</button>
         </div>
         <div class="cmp-results" id="cmpResults"></div>
-        <div class="cmp-slots" id="cmpSlots">
-            <div class="cmp-slot filled" style="border-color:var(--red)">
-                <div class="slot-name" style="color:var(--red)">조주원</div>
-                <div class="slot-info">KOR | 2013 | ID: 106570</div>
-            </div>
-            <div class="cmp-slot" id="slot2">
-                <div style="color:var(--dim)">+ 비교 선수 검색</div>
-            </div>
-        </div>
+        <div class="cmp-slots" id="cmpSlots"></div>
         <div id="cmpOutput"></div>
-    </div>
-
-    <div class="section" id="vs-jungsun">
-        <div class="vs-banner"><h2><span style="color:var(--red)">조주원</span> <span class="vs">VS</span> <span style="color:var(--purple)">오정선</span></h2><div style="color:var(--muted);margin-top:8px">둘 다 중1 | 매스스타트 — 정선 1위, 주원 3위</div></div>
-        <div class="compare-grid" id="vsGrid"></div>
-        <div class="chart-wrap" style="margin-top:20px"><h3>종목별 성장 비교 (탭 클릭으로 종목 토글)</h3><canvas id="vsChart"></canvas></div>
-    </div>
-
-    <div class="section" id="vs-yunji">
-        <div class="vs-banner"><h2><span style="color:var(--red)">조주원</span> <span class="vs">VS</span> <span style="color:var(--cyan)">차윤지</span></h2><div style="color:var(--muted);margin-top:8px">같은팀 (별가람중) | 체격차 +10cm +10kg</div></div>
-        <table>
-            <tr><th>항목</th><th class="hl">조주원</th><th class="rival">차윤지</th></tr>
-            <tr><td>체격</td><td>작음</td><td>+10cm, +10kg</td></tr>
-            <tr><td>기술/자세</td><td class="up">더 좋음</td><td>보통</td></tr>
-            <tr><td>힘/덩치</td><td>한계</td><td class="up">강점</td></tr>
-            <tr><td>두뇌/전략</td><td class="up">탁월</td><td>약함</td></tr>
-            <tr><td>매스스타트</td><td class="up">우위</td><td>열세</td></tr>
-            <tr><td>장거리</td><td>현재 열세</td><td class="up">우위</td></tr>
-            <tr><td>500m 베스트</td><td colspan="2" style="text-align:center;color:var(--green)">주원이 근소 우위</td></tr>
-        </table>
     </div>
 
     <div class="section" id="analysis">
@@ -309,7 +278,7 @@ tr:hover { background: rgba(51,65,85,0.3); }
 </div>
 
 <script>
-const SKATER=106570, RIVAL=106574;
+const SKATER=106570;
 const API='https://speedskatingresults.com/api/json';
 const DISTS=[500,1000,1500,3000];
 const DCOL={500:'#ef4444',1000:'#3b82f6',1500:'#22c55e',3000:'#f59e0b'};
@@ -323,18 +292,15 @@ let SD={},RD={},curDist=500,gChart,pChart,vChart;
 async function fj(u){try{return await(await fetch(u)).json()}catch(e){return null}}
 
 async function init(){
-    const[spr,rpr]=await Promise.all([fj(`${API}/personal_records.php?skater=${SKATER}`),fj(`${API}/personal_records.php?skater=${RIVAL}`)]);
-    SD.pr=spr;RD.pr=rpr;
-    const[sr,rr]=await Promise.all([
-        Promise.all(DISTS.map(d=>fj(`${API}/skater_results.php?skater=${SKATER}&distance=${d}`))),
-        Promise.all(DISTS.map(d=>fj(`${API}/skater_results.php?skater=${RIVAL}&distance=${d}`)))
-    ]);
-    DISTS.forEach((d,i)=>{SD[d]=sr[i]?.results||[];RD[d]=rr[i]?.results||[]});
+    const spr=await fj(`${API}/personal_records.php?skater=${SKATER}`);
+    SD.pr=spr;
+    const sr=await Promise.all(DISTS.map(d=>fj(`${API}/skater_results.php?skater=${SKATER}&distance=${d}`)));
+    DISTS.forEach((d,i)=>{SD[d]=sr[i]?.results||[]});
     render();
 }
 
 function render(){
-    renderPR();renderTabs();renderGrowth(curDist);renderPredict();renderVS();renderVSChart();renderRates();
+    renderPR();renderTabs();renderGrowth(curDist);renderPredict();renderGrowthRatesSolo();
     const now=new Date().toLocaleString('ko-KR');
     document.getElementById('lastUpdate').textContent='업데이트: '+now;
     document.getElementById('footerUpdate').textContent='마지막 업데이트: '+now;
@@ -424,41 +390,14 @@ function renderPredict(){
     scales:{y:{reverse:true,ticks:{color:'#94a3b8',callback:v=>ft(v)},grid:{color:'rgba(51,65,85,0.2)'}},x:{ticks:{color:'#94a3b8',maxRotation:45,maxTicksLimit:12},grid:{color:'rgba(51,65,85,0.2)'}}}}})
 }
 
-function renderVS(){
-    const jw=SD.pr?.records||[],js=RD.pr?.records||[];
-    document.getElementById('vsGrid').innerHTML=DISTS.map(d=>{
-        const a=jw.find(r=>r.distance===d),b=js.find(r=>r.distance===d);if(!a||!b)return'';
-        const at=pt(a.time),bt=pt(b.time);
-        return`<div class="compare-card"><div class="dist">${DNAME[d]}</div><div class="row"><span class="name">주원</span><span class="val jw">${ft(at)}</span></div><div class="row"><span class="name">정선</span><span class="val js">${ft(bt)}</span></div><div class="gap">차이: ${(at-bt).toFixed(2)}초</div></div>`
-    }).join('');
-}
-
-function renderVSChart(){
-    if(vChart)vChart.destroy();
-    const ds=[],allL=new Set();
-    [SD,RD].forEach(data=>{[500,1000,1500].forEach(d=>{(data[d]||[]).slice().reverse().forEach(r=>allL.add(r.date))})});
-    const labels=[...allL].sort();
-    [500,1000,1500].forEach(dist=>{
-        [[SD,'조주원',DCOL[dist],3,[]],[RD,'오정선',DCOL[dist]+'80',2,[6,3]]].forEach(([data,name,color,w,dash])=>{
-            const res=(data[dist]||[]).slice().reverse(),map={};res.forEach(r=>map[r.date]=pt(r.time));
-            ds.push({label:`${name} ${DNAME[dist]}`,data:labels.map(l=>map[l]||null),borderColor:color,borderWidth:w,borderDash:dash,pointRadius:w>2?4:3,fill:false,spanGaps:true,hidden:dist!==500})
-        })
-    });
-    vChart=new Chart(document.getElementById('vsChart'),{type:'line',data:{labels,datasets:ds},
-    options:{responsive:true,plugins:{tooltip:{callbacks:{label:c=>c.dataset.label+': '+(c.parsed.y?ft(c.parsed.y):'-')}},legend:{labels:{color:'#94a3b8'}}},
-    scales:{y:{reverse:true,ticks:{color:'#94a3b8',callback:v=>ft(v)},grid:{color:'rgba(51,65,85,0.2)'}},x:{ticks:{color:'#94a3b8',maxRotation:45,maxTicksLimit:10},grid:{color:'rgba(51,65,85,0.2)'}}}}})
-}
-
-function renderRates(){
+function renderGrowthRatesSolo(){
     document.getElementById('growthRates').innerHTML=[500,1000,1500].map(d=>{
-        const jw=SD[d]||[],js=RD[d]||[];if(!jw.length||!js.length)return'';
+        const jw=SD[d]||[];if(!jw.length)return'';
         const jwF=pt(jw[jw.length-1].time),jwB=Math.min(...jw.map(r=>pt(r.time)));
-        const jsF=pt(js[js.length-1].time),jsB=Math.min(...js.map(r=>pt(r.time)));
-        const jwP=((jwF-jwB)/jwF*100).toFixed(1),jsP=((jsF-jsB)/jsF*100).toFixed(1);
-        const mx=Math.max(parseFloat(jwP),parseFloat(jsP),1);
+        const jwP=((jwF-jwB)/jwF*100).toFixed(1);
         return`<div class="growth-item"><h4 style="color:${DCOL[d]}">${DNAME[d]}</h4>
-        <div class="gbar"><div class="gbar-label"><span>주원</span><span style="color:var(--red)">${jwP}%</span></div><div class="gbar-track"><div class="gbar-fill" style="width:${jwP/mx*100}%;background:linear-gradient(90deg,#ef4444,#f87171)">${jwP}%</div></div></div>
-        <div class="gbar"><div class="gbar-label"><span>정선</span><span style="color:var(--purple)">${jsP}%</span></div><div class="gbar-track"><div class="gbar-fill" style="width:${jsP/mx*100}%;background:linear-gradient(90deg,#a855f7,#c084fc)">${jsP}%</div></div></div></div>`
+        <div class="gbar"><div class="gbar-label"><span>성장률</span><span style="color:var(--green)">${jwP}%</span></div><div class="gbar-track"><div class="gbar-fill" style="width:${jwP}%;background:linear-gradient(90deg,${DCOL[d]},${DCOL[d]}cc)">${jwP}%</div></div></div>
+        <div style="color:var(--dim);font-size:0.8em;margin-top:4px">${ft(jwF)} → ${ft(jwB)}</div></div>`
     }).join('');
 }
 
@@ -541,139 +480,164 @@ function renderCal(){
 }
 renderCal();
 
-// ===== COMPARATOR =====
-let cmpRival=null;
+// ===== COMPARATOR (max 5) =====
+const CMP_COLORS=['#ef4444','#a855f7','#06b6d4','#f59e0b','#ec4899'];
+let cmpSkaters=[{id:SKATER,name:'조주원',pr:null,data:{}}]; // slot 0 = juwon
+
+function renderSlots(){
+    const el=document.getElementById('cmpSlots');
+    el.innerHTML=cmpSkaters.map((s,i)=>
+        `<div class="cmp-slot filled" style="border-color:${CMP_COLORS[i]}">
+            <div class="slot-name" style="color:${CMP_COLORS[i]}">${s.name}</div>
+            <div class="slot-info">ID: ${s.id}</div>
+            ${i>0?`<div class="slot-remove" onclick="removeSkater(${i})">X 제거</div>`:''}
+        </div>`
+    ).join('') + (cmpSkaters.length<5?`<div class="cmp-slot" style="cursor:pointer" onclick="document.getElementById('cmpName').focus()"><div style="color:var(--dim)">+ 선수 추가 (${cmpSkaters.length}/5)</div></div>`:'');
+}
 
 async function searchSkater(){
-    const last=document.getElementById('cmpLastName').value.trim();
-    const first=document.getElementById('cmpFirstName').value.trim();
-    if(!last)return;
-    const url=`${API}/skater_lookup.php?familyname=${encodeURIComponent(last)}${first?'&givenname='+encodeURIComponent(first):''}`;
+    const input=document.getElementById('cmpName').value.trim();
+    if(!input)return;
+    const parts=input.split(/\s+/);
+    let url;
+    if(parts.length>=2){
+        url=`${API}/skater_lookup.php?familyname=${encodeURIComponent(parts[parts.length-1])}&givenname=${encodeURIComponent(parts.slice(0,-1).join(' '))}`;
+    } else {
+        url=`${API}/skater_lookup.php?familyname=${encodeURIComponent(parts[0])}`;
+    }
     const data=await fj(url);
     const res=document.getElementById('cmpResults');
-    if(!data||!data.skaters||!data.skaters.length){res.innerHTML='<span style="color:var(--dim)">검색 결과 없음. 영문 이름으로 검색해주세요 (예: Kim, Ha-El)</span>';return}
+    if(!data?.skaters?.length){
+        // Try reversed order
+        if(parts.length>=2){
+            const url2=`${API}/skater_lookup.php?familyname=${encodeURIComponent(parts[0])}&givenname=${encodeURIComponent(parts.slice(1).join(' '))}`;
+            const data2=await fj(url2);
+            if(data2?.skaters?.length){
+                res.innerHTML=data2.skaters.slice(0,20).map(s=>
+                    `<div class="cmp-chip" onclick="addSkater(${s.id},'${s.givenname} ${s.familyname}')">${s.givenname} ${s.familyname} (${s.country}, ${s.gender==='f'?'여':'남'})</div>`
+                ).join('');
+                return;
+            }
+        }
+        res.innerHTML='<span style="color:var(--dim)">검색 결과 없음. 영문 이름으로 입력해주세요 (예: Oh Jeong-Seon, Kim Ha-El)</span>';
+        return;
+    }
     res.innerHTML=data.skaters.slice(0,20).map(s=>
-        `<div class="cmp-chip" onclick="selectRival(${s.id},'${s.givenname} ${s.familyname}','${s.country}','${s.category}')">${s.givenname} ${s.familyname} (${s.country}, ${s.gender==='f'?'여':'남'}, ${s.category})</div>`
+        `<div class="cmp-chip" onclick="addSkater(${s.id},'${s.givenname} ${s.familyname}')">${s.givenname} ${s.familyname} (${s.country}, ${s.gender==='f'?'여':'남'})</div>`
     ).join('');
 }
 
-async function selectRival(id,name,country,cat){
+async function addSkater(id,name){
+    if(cmpSkaters.length>=5)return;
+    if(cmpSkaters.find(s=>s.id===id))return;
     document.getElementById('cmpResults').innerHTML='';
-    document.getElementById('slot2').innerHTML=`<div class="slot-name" style="color:var(--purple)">${name}</div><div class="slot-info">${country} | ${cat} | ID: ${id}</div><div class="slot-remove" onclick="clearRival()">X 제거</div>`;
-    document.getElementById('slot2').classList.add('filled');
-    document.getElementById('slot2').style.borderColor='var(--purple)';
+    document.getElementById('cmpName').value='';
 
-    // Load rival data
     const[pr,...dists]=await Promise.all([
         fj(`${API}/personal_records.php?skater=${id}`),
         ...DISTS.map(d=>fj(`${API}/skater_results.php?skater=${id}&distance=${d}`))
     ]);
-    cmpRival={id,name,pr,data:{}};
-    DISTS.forEach((d,i)=>cmpRival.data[d]=dists[i]?.results||[]);
+    const skater={id,name,pr,data:{}};
+    DISTS.forEach((d,i)=>skater.data[d]=dists[i]?.results||[]);
+    cmpSkaters.push(skater);
+    renderSlots();
     renderComparison();
 }
 
-function clearRival(){
-    cmpRival=null;
-    document.getElementById('slot2').innerHTML='<div style="color:var(--dim)">+ 비교 선수 검색</div>';
-    document.getElementById('slot2').classList.remove('filled');
-    document.getElementById('slot2').style.borderColor='';
-    document.getElementById('cmpOutput').innerHTML='';
+function removeSkater(idx){
+    cmpSkaters.splice(idx,1);
+    renderSlots();
+    if(cmpSkaters.length>1) renderComparison();
+    else document.getElementById('cmpOutput').innerHTML='';
 }
 
 function renderComparison(){
-    if(!cmpRival)return;
-    const jwPR=SD.pr?.records||[];
-    const rvPR=cmpRival.pr?.records||[];
+    if(cmpSkaters.length<2)return;
+    // Ensure juwon data is loaded
+    cmpSkaters[0].pr=SD.pr;
+    cmpSkaters[0].data={};
+    DISTS.forEach(d=>cmpSkaters[0].data[d]=SD[d]||[]);
 
-    // Build comparison table
+    // Build table headers
+    const headers=cmpSkaters.map((s,i)=>`<th style="color:${CMP_COLORS[i]}">${s.name}</th>`).join('');
+
     let rows='';
+    // PR comparison
     DISTS.forEach(d=>{
-        const jw=jwPR.find(r=>r.distance===d);
-        const rv=rvPR.find(r=>r.distance===d);
-        if(!jw&&!rv)return;
-        const jwT=jw?pt(jw.time):null;
-        const rvT=rv?pt(rv.time):null;
-        const jwWin=jwT&&rvT&&jwT<rvT;
-        const rvWin=jwT&&rvT&&rvT<jwT;
-        const diff=jwT&&rvT?Math.abs(jwT-rvT).toFixed(2)+'초':'-';
-        rows+=`<tr>
-            <td class="label-col">${DNAME[d]} PR</td>
-            <td class="${jwWin?'winner':''}">${jwT?ft(jwT):'-'}</td>
-            <td class="${rvWin?'winner':''}">${rvT?ft(rvT):'-'}</td>
-            <td>${diff}</td>
-        </tr>`;
+        const times=cmpSkaters.map(s=>{
+            const rec=(s.pr?.records||[]).find(r=>r.distance===d);
+            return rec?pt(rec.time):null;
+        });
+        const validTimes=times.filter(t=>t!==null);
+        const best=validTimes.length?Math.min(...validTimes):null;
+        const cells=times.map((t,i)=>{
+            const isBest=t!==null&&t===best&&validTimes.length>1;
+            return`<td class="${isBest?'winner':''}">${t!==null?ft(t):'-'}</td>`;
+        }).join('');
+        rows+=`<tr><td class="label-col">${DNAME[d]} PR</td>${cells}</tr>`;
     });
 
     // Growth rates
-    DISTS.filter(d=>d!==3000).forEach(d=>{
-        const jwR=SD[d]||[],rvR=cmpRival.data[d]||[];
-        if(!jwR.length||!rvR.length)return;
-        const jwF=pt(jwR[jwR.length-1].time),jwB=Math.min(...jwR.map(r=>pt(r.time)));
-        const rvF=pt(rvR[rvR.length-1].time),rvB=Math.min(...rvR.map(r=>pt(r.time)));
-        const jwP=((jwF-jwB)/jwF*100).toFixed(1);
-        const rvP=((rvF-rvB)/rvF*100).toFixed(1);
-        const jwWin=parseFloat(jwP)>parseFloat(rvP);
-        const rvWin=parseFloat(rvP)>parseFloat(jwP);
-        rows+=`<tr>
-            <td class="label-col">${DNAME[d]} 성장률</td>
-            <td class="${jwWin?'winner':''}">${jwP}%</td>
-            <td class="${rvWin?'winner':''}">${rvP}%</td>
-            <td>-</td>
-        </tr>`;
+    [500,1000,1500].forEach(d=>{
+        const rates=cmpSkaters.map(s=>{
+            const results=s.data[d]||[];
+            if(results.length<2)return null;
+            const first=pt(results[results.length-1].time);
+            const best=Math.min(...results.map(r=>pt(r.time)));
+            return((first-best)/first*100);
+        });
+        const validRates=rates.filter(r=>r!==null);
+        const bestRate=validRates.length?Math.max(...validRates):null;
+        const cells=rates.map((r,i)=>{
+            const isBest=r!==null&&r===bestRate&&validRates.length>1;
+            return`<td class="${isBest?'winner':''}">${r!==null?r.toFixed(1)+'%':'-'}</td>`;
+        }).join('');
+        rows+=`<tr><td class="label-col">${DNAME[d]} 성장률</td>${cells}</tr>`;
     });
 
-    // Race count
-    let jwTotal=0,rvTotal=0;
-    DISTS.forEach(d=>{jwTotal+=(SD[d]||[]).length;rvTotal+=(cmpRival.data[d]||[]).length});
-    rows+=`<tr><td class="label-col">총 출전 기록수</td><td>${jwTotal}</td><td>${rvTotal}</td><td>-</td></tr>`;
+    // Total races
+    const totals=cmpSkaters.map(s=>DISTS.reduce((sum,d)=>(s.data[d]||[]).length+sum,0));
+    rows+=`<tr><td class="label-col">총 기록수</td>${totals.map(t=>`<td>${t}</td>`).join('')}</tr>`;
 
     const output=document.getElementById('cmpOutput');
     output.innerHTML=`
     <table class="cmp-table">
-        <tr><th style="text-align:left">항목</th><th style="color:var(--red)">조주원</th><th style="color:var(--purple)">${cmpRival.name}</th><th>차이</th></tr>
+        <tr><th style="text-align:left">항목</th>${headers}</tr>
         ${rows}
     </table>
-    <div class="chart-wrap" style="margin-top:20px"><h3>기록 비교 차트</h3><canvas id="cmpChart"></canvas></div>`;
+    <div class="chart-wrap" style="margin-top:20px"><h3>기록 비교 차트 (범례 클릭으로 토글)</h3><canvas id="cmpChart"></canvas></div>`;
 
     // Chart
-    const ds=[];
-    [500,1000,1500].forEach(dist=>{
-        const allL=new Set();
-        [[SD,'조주원',DCOL[dist],3,[]],[cmpRival,'data',DCOL[dist]+'80',2,[6,3]]].forEach(([src])=>{
-            const d=src===cmpRival?src.data[dist]||[]:src[dist]||[];
-            d.slice().reverse().forEach(r=>allL.add(r.date));
-        });
-        const labels=[...allL].sort();
-        [[SD[dist]||[],'조주원',DCOL[dist],3,[]],[cmpRival.data[dist]||[],cmpRival.name,DCOL[dist]+'80',2,[6,3]]].forEach(([results,name,color,w,dash])=>{
-            const map={};results.slice().reverse().forEach(r=>map[r.date]=pt(r.time));
-            ds.push({label:`${name} ${DNAME[dist]}`,data:labels.map(l=>map[l]||null),borderColor:color,borderWidth:w,borderDash:dash,pointRadius:w>2?4:3,fill:false,spanGaps:true,hidden:dist!==500});
-        });
-    });
-    const allLabels=new Set();ds.forEach(d=>d.data.forEach((_,i)=>allLabels.add(i)));
+    const allDates=new Set();
+    cmpSkaters.forEach(s=>{[500,1000,1500].forEach(d=>{(s.data[d]||[]).forEach(r=>allDates.add(r.date))})});
+    const labels=[...allDates].sort();
 
-    // Merge all labels
-    const mergedLabels=new Set();
+    const datasets=[];
     [500,1000,1500].forEach(dist=>{
-        [SD[dist]||[],cmpRival.data[dist]||[]].forEach(results=>{
-            results.forEach(r=>mergedLabels.add(r.date));
-        });
-    });
-    const sortedLabels=[...mergedLabels].sort();
-
-    // Rebuild datasets with merged labels
-    const ds2=[];
-    [500,1000,1500].forEach(dist=>{
-        [[SD[dist]||[],'조주원',DCOL[dist],3,[]],[cmpRival.data[dist]||[],cmpRival.name,DCOL[dist]+'80',2,[6,3]]].forEach(([results,name,color,w,dash])=>{
-            const map={};results.slice().reverse().forEach(r=>map[r.date]=pt(r.time));
-            ds2.push({label:`${name} ${DNAME[dist]}`,data:sortedLabels.map(l=>map[l]||null),borderColor:color,borderWidth:w,borderDash:dash,pointRadius:w>2?4:3,fill:false,spanGaps:true,hidden:dist!==500});
+        cmpSkaters.forEach((s,i)=>{
+            const results=(s.data[dist]||[]).slice().reverse();
+            const map={};results.forEach(r=>map[r.date]=pt(r.time));
+            const baseColor=CMP_COLORS[i];
+            datasets.push({
+                label:`${s.name} ${DNAME[dist]}`,
+                data:labels.map(l=>map[l]||null),
+                borderColor:baseColor,
+                borderWidth:i===0?3:2,
+                borderDash:i===0?[]:[6,3],
+                pointRadius:i===0?4:3,
+                fill:false,
+                spanGaps:true,
+                hidden:dist!==500
+            });
         });
     });
 
-    new Chart(document.getElementById('cmpChart'),{type:'line',data:{labels:sortedLabels,datasets:ds2},
-    options:{responsive:true,plugins:{tooltip:{callbacks:{label:c=>c.dataset.label+': '+(c.parsed.y?ft(c.parsed.y):'-')}},legend:{labels:{color:'#94a3b8'}}},
+    new Chart(document.getElementById('cmpChart'),{type:'line',data:{labels,datasets},
+    options:{responsive:true,plugins:{tooltip:{callbacks:{label:c=>c.dataset.label+': '+(c.parsed.y?ft(c.parsed.y):'-')}},legend:{labels:{color:'#94a3b8',font:{size:11}}}},
     scales:{y:{reverse:true,ticks:{color:'#94a3b8',callback:v=>ft(v)},grid:{color:'rgba(51,65,85,0.2)'}},x:{ticks:{color:'#94a3b8',maxRotation:45,maxTicksLimit:10},grid:{color:'rgba(51,65,85,0.2)'}}}}});
 }
+
+renderSlots();
 
 init();
 </script>
