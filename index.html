@@ -261,12 +261,23 @@ tr:hover { background: rgba(51,65,85,0.3); }
 
     <!-- 선수 비교기 -->
     <div class="section" id="comparator">
-        <h2>선수 비교 <span>(최대 5명)</span></h2>
-        <div class="cmp-search">
-            <input type="text" id="cmpName" placeholder="선수 이름 (영문, 예: Oh Jeong-Seon)" onkeydown="if(event.key==='Enter')searchSkater()">
-            <button onclick="searchSkater()">검색</button>
+        <h2>선수 비교 <span>(최대 5명, 리스트에서 선택)</span></h2>
+        <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+            <select id="skaterSelect" style="flex:1;min-width:250px;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:1em">
+                <option value="">-- 선수를 선택하세요 --</option>
+            </select>
+            <button onclick="addFromList()" style="padding:12px 24px;border-radius:10px;border:none;background:var(--blue);color:#fff;font-size:1em;cursor:pointer;font-weight:600">추가</button>
         </div>
-        <div class="cmp-results" id="cmpResults"></div>
+        <div style="margin-bottom:16px">
+            <details style="background:var(--card);border-radius:10px;padding:12px;border:1px solid var(--border)">
+                <summary style="cursor:pointer;color:var(--muted);font-size:0.9em">직접 검색 (리스트에 없는 선수)</summary>
+                <div class="cmp-search" style="margin-top:12px">
+                    <input type="text" id="cmpName" placeholder="영문 이름 (예: Oh Jeong-Seon)" onkeydown="if(event.key==='Enter')searchSkater()">
+                    <button onclick="searchSkater()" style="padding:12px 24px;border-radius:10px;border:none;background:var(--purple);color:#fff;font-size:1em;cursor:pointer">검색</button>
+                </div>
+                <div class="cmp-results" id="cmpResults"></div>
+            </details>
+        </div>
         <div class="cmp-slots" id="cmpSlots"></div>
         <div id="cmpOutput"></div>
     </div>
@@ -479,6 +490,82 @@ function renderCal(){
     }).join('')||'<div style="color:var(--muted);text-align:center;padding:40px">해당 대회가 없습니다</div>';
 }
 renderCal();
+
+// ===== SKATER LIST (여자 중학부) =====
+const SKATER_LIST=[
+// 중1 (2013년생)
+{id:106570,name:'조주원 (Cho Ju-Won)',grade:'중1'},
+{id:106574,name:'오정선 (Oh Jeong-Seon)',grade:'중1'},
+{id:106566,name:'박서윤 (Park Seo-Yun)',grade:'중1'},
+{id:113575,name:'홍서영 (Hong Seo-Yeong)',grade:'중1'},
+{id:120384,name:'권태연 (Kweon Tae-Yeon)',grade:'중1'},
+{id:100909,name:'김시연 (Kim Si-Yeon)',grade:'중1'},
+{id:93909,name:'김현명 (Kim Hyun-Myung)',grade:'중1'},
+{id:113586,name:'방예나 (Bang Ye-Na)',grade:'중1'},
+{id:113574,name:'서하윤 (Seo Ha-Yoon)',grade:'중1'},
+{id:113572,name:'김단아 (Kim Dan-A)',grade:'중1'},
+{id:100914,name:'김현아 (Kim Hyun-Ah)',grade:'중1'},
+{id:120395,name:'오채은 (Oh Chae-Eun)',grade:'중1'},
+{id:113576,name:'구다연 (Ku Da-Yeon)',grade:'중1'},
+{id:120393,name:'홍예서 (Hong Ye-Seo)',grade:'중1'},
+{id:113577,name:'김가연 (Kim Ka-Yeon)',grade:'중1'},
+{id:106569,name:'정예원 (Jung Ye-Won)',grade:'중1'},
+{id:120396,name:'천규림 (Cheon Kyu-Lim)',grade:'중1'},
+{id:108163,name:'박서아 (Park Seo-A)',grade:'중1'},
+{id:106981,name:'노하민 (No Ha-Naim)',grade:'중1'},
+{id:120999,name:'이나원 (Lee Na-Weon)',grade:'중1'},
+{id:100911,name:'황준희 (Hwang Jun-Hui)',grade:'중1'},
+{id:113585,name:'신시아 (Shin See-A)',grade:'중1'},
+{id:99890,name:'노윤성 (No Yun-Sung)',grade:'중1'},
+{id:93244,name:'박린하 (Park Rin-Ha)',grade:'중1'},
+{id:113579,name:'이리경 (Lee Ri-Kyeong)',grade:'중1'},
+{id:113587,name:'윤솔비 (Yun Sol-Bi)',grade:'중1'},
+{id:113590,name:'김지은 (Kim Jee-Eun)',grade:'중1'},
+{id:108164,name:'김민채 (Kim Min-Chae)',grade:'중1'},
+{id:99889,name:'조수민 (Cho Su-Min)',grade:'중1'},
+// 중2~3 (race_2026_03_28.md 기반)
+{id:0,name:'차윤지 (Cha Yun-Ji)',grade:'중1',note:'같은팀'},
+{id:0,name:'김하엘 (Kim Ha-El)',grade:'중2~3'},
+{id:0,name:'안경인 (An Gyeong-In)',grade:'중2'},
+{id:0,name:'최운서 (Choi Un-Seo)',grade:'중3'},
+{id:0,name:'한마음 (Han Ma-Eum)',grade:'중3'},
+{id:0,name:'손하나 (Son Ha-Na)',grade:'중3'},
+{id:0,name:'전서현 (Jeon Seo-Hyeon)',grade:'중3'},
+{id:0,name:'박서영 (Park Seo-Young)',grade:'중2'},
+{id:0,name:'최하연 (Choi Ha-Yeon)',grade:'중2'},
+];
+
+function populateSelect(){
+    const sel=document.getElementById('skaterSelect');
+    const grades=['중1','중2','중2~3','중3'];
+    grades.forEach(g=>{
+        const group=document.createElement('optgroup');
+        group.label=g;
+        SKATER_LIST.filter(s=>s.grade===g&&s.id!==SKATER).forEach(s=>{
+            const opt=document.createElement('option');
+            opt.value=s.id+'|'+s.name;
+            opt.textContent=s.name+(s.note?' ('+s.note+')':'');
+            group.appendChild(opt);
+        });
+        if(group.children.length)sel.appendChild(group);
+    });
+}
+
+function addFromList(){
+    const sel=document.getElementById('skaterSelect');
+    if(!sel.value)return;
+    const[idStr,name]=sel.value.split('|');
+    const id=parseInt(idStr);
+    if(id>0){
+        addSkater(id,name);
+    } else {
+        // No API ID - show message
+        alert(name+' 선수는 speedskatingresults.com에 등록되어 있지 않아서 API 비교가 불가능합니다.');
+    }
+    sel.value='';
+}
+
+populateSelect();
 
 // ===== COMPARATOR (max 5) =====
 const CMP_COLORS=['#ef4444','#a855f7','#06b6d4','#f59e0b','#ec4899'];
