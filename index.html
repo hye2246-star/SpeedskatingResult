@@ -15,7 +15,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'Malgun Gothic','Apple SD Gothic Neo',sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
 
-.nav { position: sticky; top: 0; z-index: 100; background: rgba(15,23,42,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; gap: 16px; overflow-x: auto; }
+.nav { position: sticky; top: 0; z-index: 100; background: rgba(15,23,42,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; gap: 16px; overflow-x: auto; justify-content: center; }
 .nav a { color: var(--muted); text-decoration: none; font-size: 0.9em; padding: 6px 12px; border-radius: 8px; white-space: nowrap; transition: all 0.2s; }
 .nav a:hover, .nav a.active { color: #fff; background: var(--blue); }
 
@@ -150,6 +150,11 @@ tr:hover { background: rgba(51,65,85,0.3); }
 .cal-card .cal-status.live { background: rgba(34,197,94,0.2); color: var(--green); }
 .cal-card .cal-status.soon { background: rgba(59,130,246,0.2); color: var(--blue); }
 .cal-card .cal-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75em; background: rgba(239,68,68,0.2); color: var(--red); margin-left: 6px; }
+.cal-card .cal-links { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+.cal-card .cal-link { padding: 4px 10px; border-radius: 6px; font-size: 0.75em; text-decoration: none; border: 1px solid; transition: all 0.2s; }
+.cal-card .cal-link:hover { opacity: 0.8; }
+.cal-card .cal-link.results { color: var(--blue); border-color: var(--blue); }
+.cal-card .cal-link.vod { color: var(--purple); border-color: var(--purple); }
 
 @media (max-width: 768px) {
     .pr-grid, .compare-grid { grid-template-columns: repeat(2, 1fr); }
@@ -520,11 +525,17 @@ function renderCal(){
         if(isActive){statusCls='live';statusText='진행중'}
         else if(!isPast){statusCls='soon';statusText='예정'}
 
+        const links=`<div class="cal-links">
+            <a href="https://result.sports.or.kr/SK/INF201.do" target="_blank" class="cal-link results">대회 결과</a>
+            <a href="https://result.sports.or.kr/SK/INF308.do" target="_blank" class="cal-link vod">경기 영상</a>
+        </div>`;
+
         return`<div class="${cls}">
             <div class="cal-date">${e.period}</div>
             <div class="cal-name">${e.name}${isJuwon?'<span class="cal-badge">주원 출전</span>':''}</div>
             <div class="cal-loc">${e.location}</div>
             <span class="cal-status ${statusCls}">${statusText}</span>
+            ${links}
         </div>`;
     }).join('')||'<div style="color:var(--muted);text-align:center;padding:40px">해당 대회가 없습니다</div>';
 }
