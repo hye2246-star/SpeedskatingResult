@@ -113,6 +113,21 @@ tr:hover { background: rgba(51,65,85,0.3); }
 .spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Calendar */
+.cal-card { background: var(--card); border-radius: 12px; padding: 18px; border: 1px solid var(--border); border-left: 4px solid var(--blue); transition: all 0.2s; }
+.cal-card:hover { border-left-color: var(--green); transform: translateX(4px); }
+.cal-card.active { border-left-color: var(--green); background: rgba(34,197,94,0.05); }
+.cal-card.past { opacity: 0.6; border-left-color: var(--dim); }
+.cal-card.juwon { border-left-color: var(--red); background: rgba(239,68,68,0.05); }
+.cal-card .cal-date { font-size: 0.85em; color: var(--blue); font-weight: 600; margin-bottom: 6px; }
+.cal-card .cal-name { font-size: 1em; font-weight: 600; margin-bottom: 4px; }
+.cal-card .cal-loc { font-size: 0.85em; color: var(--dim); }
+.cal-card .cal-status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75em; font-weight: 600; margin-top: 8px; }
+.cal-card .cal-status.done { background: rgba(100,116,139,0.2); color: var(--dim); }
+.cal-card .cal-status.live { background: rgba(34,197,94,0.2); color: var(--green); }
+.cal-card .cal-status.soon { background: rgba(59,130,246,0.2); color: var(--blue); }
+.cal-card .cal-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75em; background: rgba(239,68,68,0.2); color: var(--red); margin-left: 6px; }
+
 @media (max-width: 768px) {
     .pr-grid, .compare-grid { grid-template-columns: repeat(2, 1fr); }
     .event-grid, .predict-grid, .growth-section { grid-template-columns: 1fr; }
@@ -126,6 +141,7 @@ tr:hover { background: rgba(51,65,85,0.3); }
     <a href="#pr">PR 기록</a>
     <a href="#growth">성장 추이</a>
     <a href="#predict">성장 예측</a>
+    <a href="#calendar">대회 캘린더</a>
     <a href="#latest">최근 대회</a>
     <a href="#vs-jungsun">vs 오정선</a>
     <a href="#vs-yunji">vs 차윤지</a>
@@ -163,6 +179,18 @@ tr:hover { background: rgba(51,65,85,0.3); }
     <div class="section">
         <h2>성장률 <span>(첫 기록 대비 개선율)</span></h2>
         <div class="growth-section" id="growthRates"></div>
+    </div>
+
+    <!-- 대회 캘린더 -->
+    <div class="section" id="calendar">
+        <h2>대회 캘린더 <span>(result.sports.or.kr)</span></h2>
+        <div class="tabs" id="calTabs">
+            <div class="tab active" onclick="filterCal('all')">전체</div>
+            <div class="tab" onclick="filterCal('upcoming')">예정</div>
+            <div class="tab" onclick="filterCal('completed')">완료</div>
+            <div class="tab" onclick="filterCal('speed')">스피드</div>
+        </div>
+        <div id="calGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px"></div>
     </div>
 
     <div class="section" id="latest">
@@ -385,6 +413,78 @@ function renderRates(){
 }
 
 document.querySelectorAll('.nav a').forEach(a=>a.addEventListener('click',()=>{document.querySelectorAll('.nav a').forEach(x=>x.classList.remove('active'));a.classList.add('active')}));
+
+// ===== CALENDAR =====
+const SCHEDULE=[
+{"name":"2026 전국남녀 종별종합 스피드스케이팅 선수권대회","location":"태릉국제스케이트장","period":"2026.01.03~2026.01.04","status":"대회완료","juwon":true},
+{"name":"제107회 전국동계체육대회","location":"춘천 송암스포츠타운빙상장","period":"2026.01.15~2026.01.18","status":"대회완료"},
+{"name":"제58회 백곰배 전국초등학교 스피드스케이팅대회","location":"철원빙상경기연맹 경기장","period":"2026.01.24~2026.01.25","status":"대회완료"},
+{"name":"제40회 전국남녀 종별종합 쇼트트랙스피드스케이팅 선수권대회","location":"성남 탄천종합운동장 빙상장","period":"2026.03.20~2026.03.22","status":"대회완료"},
+{"name":"제61회 빙상인추모 전국남녀 스피드스케이팅대회","location":"태릉국제스케이트장","period":"2026.03.21~2026.03.22","status":"대회완료","juwon":true},
+{"name":"제61회 전국남녀 중고등학교 스피드스케이팅대회","location":"태릉국제스케이트장","period":"2026.03.27~2026.03.29","status":"대회중","juwon":true},
+{"name":"제59회 전국남녀 대학교 스피드스케이팅대회","location":"태릉국제스케이트장","period":"2026.03.27~2026.03.29","status":"대회중"},
+{"name":"제39회 전국남녀 초등학교 스피드스케이팅대회","location":"태릉국제스케이트장","period":"2026.03.27~2026.03.29","status":"대회중"},
+{"name":"2026 한국실업빙상경기연맹 회장배 스피드스케이팅대회","location":"태릉국제스케이트장","period":"2026.03.27~2026.03.29","status":"대회중"},
+// 2025 시즌 (주원이 참가 대회 표시)
+{"name":"2025 전국남녀 종별종합 스피드스케이팅 선수권대회","location":"태릉국제스케이트장","period":"2025.01.02~2025.01.03","status":"대회완료","juwon":true},
+{"name":"제106회 전국동계체육대회","location":"태릉국제스케이트장","period":"2025.01.15~2025.01.17","status":"대회완료"},
+{"name":"제60회 빙상인추모 전국남녀 스피드스케이팅대회","location":"태릉국제스케이트장","period":"2025.03.21~2025.03.23","status":"대회완료"},
+{"name":"제60회 전국남녀 중고등학교 스피드스케이팅대회","location":"태릉국제스케이트장","period":"2025.03.28~2025.03.30","status":"대회완료"},
+{"name":"2025 스피드스케이팅 공인기록회","location":"태릉국제스케이트장","period":"2025.10.01~2025.10.02","status":"대회완료","juwon":true},
+{"name":"제60회 전국남녀 종목별 스피드스케이팅 선수권대회","location":"태릉국제스케이트장","period":"2025.10.13~2025.10.15","status":"대회완료"},
+{"name":"제56회 회장배 전국남녀 스피드스케이팅대회","location":"태릉국제스케이트장","period":"2025.10.24~2025.10.26","status":"대회완료"},
+{"name":"2026 주니어 스피드스케이팅 선수권대회","location":"태릉국제스케이트장","period":"2025.11.01~2025.11.02","status":"대회완료"},
+{"name":"제25회 전국남녀 꿈나무 스피드스케이팅대회","location":"태릉국제스케이트장","period":"2025.11.15~2025.11.15","status":"대회완료","juwon":true},
+{"name":"제80회 전국남녀 종합 스피드스케이팅 선수권대회","location":"태릉국제스케이트장","period":"2025.12.26~2025.12.27","status":"대회완료"},
+];
+
+let calFilter='all';
+function filterCal(f){
+    calFilter=f;
+    document.querySelectorAll('#calTabs .tab').forEach(t=>t.classList.remove('active'));
+    event.target.classList.add('active');
+    renderCal();
+}
+
+function renderCal(){
+    const today=new Date();
+    let items=SCHEDULE.slice().sort((a,b)=>{
+        const da=new Date(a.period.split('~')[0].replace(/\./g,'-'));
+        const db=new Date(b.period.split('~')[0].replace(/\./g,'-'));
+        return db-da; // newest first
+    });
+
+    if(calFilter==='upcoming') items=items.filter(e=>new Date(e.period.split('~')[1].replace(/\./g,'-'))>=today);
+    if(calFilter==='completed') items=items.filter(e=>e.status==='대회완료');
+    if(calFilter==='speed') items=items.filter(e=>e.name.includes('스피드')&&!e.name.includes('쇼트'));
+
+    const grid=document.getElementById('calGrid');
+    grid.innerHTML=items.map(e=>{
+        const startDate=new Date(e.period.split('~')[0].replace(/\./g,'-'));
+        const endDate=new Date(e.period.split('~')[1].replace(/\./g,'-'));
+        const isActive=startDate<=today&&endDate>=today;
+        const isPast=endDate<today;
+        const isJuwon=e.juwon;
+
+        let cls='cal-card';
+        if(isJuwon) cls+=' juwon';
+        else if(isActive) cls+=' active';
+        else if(isPast) cls+=' past';
+
+        let statusCls='done', statusText=e.status;
+        if(isActive){statusCls='live';statusText='진행중'}
+        else if(!isPast){statusCls='soon';statusText='예정'}
+
+        return`<div class="${cls}">
+            <div class="cal-date">${e.period}</div>
+            <div class="cal-name">${e.name}${isJuwon?'<span class="cal-badge">주원 출전</span>':''}</div>
+            <div class="cal-loc">${e.location}</div>
+            <span class="cal-status ${statusCls}">${statusText}</span>
+        </div>`;
+    }).join('')||'<div style="color:var(--muted);text-align:center;padding:40px">해당 대회가 없습니다</div>';
+}
+renderCal();
+
 init();
 </script>
 </body>
