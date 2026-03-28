@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>조주원 스피드스케이팅 대시보드</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; background: #0f172a; color: #e2e8f0; }
+
+.header { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 40px 20px; text-align: center; border-bottom: 3px solid #3b82f6; }
+.header h1 { font-size: 2.2em; color: #fff; margin-bottom: 8px; }
+.header .subtitle { color: #94a3b8; font-size: 1.1em; }
+.header .badge { display: inline-block; background: #3b82f6; color: #fff; padding: 4px 12px; border-radius: 20px; font-size: 0.85em; margin: 4px; }
+
+.container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+/* PR Cards */
+.pr-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 30px 0; }
+.pr-card { background: #1e293b; border-radius: 16px; padding: 24px; text-align: center; border: 1px solid #334155; transition: transform 0.2s; }
+.pr-card:hover { transform: translateY(-4px); border-color: #3b82f6; }
+.pr-card .dist { font-size: 1.1em; color: #94a3b8; margin-bottom: 8px; }
+.pr-card .time { font-size: 2em; font-weight: bold; }
+.pr-card .date { font-size: 0.85em; color: #64748b; margin-top: 6px; }
+.pr-card.c500 .time { color: #ef4444; }
+.pr-card.c1000 .time { color: #3b82f6; }
+.pr-card.c1500 .time { color: #22c55e; }
+.pr-card.c3000 .time { color: #f59e0b; }
+
+/* Section */
+.section { margin: 40px 0; }
+.section h2 { font-size: 1.5em; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #334155; }
+.section h2 span { color: #3b82f6; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
+th { background: #334155; color: #94a3b8; padding: 12px 16px; text-align: left; font-size: 0.9em; text-transform: uppercase; }
+td { padding: 12px 16px; border-bottom: 1px solid #293548; }
+tr:last-child td { border-bottom: none; }
+tr:hover { background: #293548; }
+.highlight { color: #ef4444; font-weight: bold; }
+.rival { color: #a855f7; font-weight: bold; }
+.improvement { color: #22c55e; font-size: 0.85em; }
+
+/* Comparison */
+.vs-header { text-align: center; margin: 30px 0 20px; }
+.vs-header h2 { font-size: 1.8em; }
+.vs-header .vs { color: #f59e0b; font-size: 1.2em; }
+
+.compare-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 20px 0; }
+.compare-card { background: #1e293b; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #334155; }
+.compare-card .dist { color: #94a3b8; font-size: 0.9em; margin-bottom: 12px; }
+.compare-card .row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; }
+.compare-card .name { font-size: 0.85em; color: #94a3b8; }
+.compare-card .val { font-weight: bold; font-size: 1.1em; }
+.compare-card .jw { color: #ef4444; }
+.compare-card .js { color: #a855f7; }
+.compare-card .gap { color: #f59e0b; font-size: 0.9em; margin-top: 8px; padding-top: 8px; border-top: 1px solid #334155; }
+
+/* Growth Rate */
+.growth-bar { display: flex; align-items: center; margin: 8px 0; }
+.growth-bar .label { width: 60px; font-size: 0.9em; color: #94a3b8; }
+.growth-bar .bar-bg { flex: 1; height: 28px; background: #293548; border-radius: 14px; overflow: hidden; position: relative; margin: 0 10px; }
+.growth-bar .bar-fill { height: 100%; border-radius: 14px; display: flex; align-items: center; justify-content: flex-end; padding-right: 10px; font-size: 0.85em; font-weight: bold; transition: width 1s; }
+.growth-bar .bar-fill.jw { background: linear-gradient(90deg, #ef4444, #f87171); }
+.growth-bar .bar-fill.js { background: linear-gradient(90deg, #a855f7, #c084fc); }
+
+/* Race Results */
+.race-header { background: linear-gradient(135deg, #1e293b, #293548); border-radius: 16px; padding: 24px; margin-bottom: 20px; border-left: 4px solid #3b82f6; }
+.race-header h3 { font-size: 1.3em; margin-bottom: 6px; }
+.race-header .meta { color: #64748b; font-size: 0.9em; }
+
+.medal { display: inline-block; width: 28px; height: 28px; border-radius: 50%; text-align: center; line-height: 28px; font-size: 0.85em; font-weight: bold; }
+.medal.gold { background: #f59e0b; color: #1e293b; }
+.medal.silver { background: #94a3b8; color: #1e293b; }
+.medal.bronze { background: #cd7f32; color: #1e293b; }
+
+.event-card { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 20px 0; }
+.evt { background: #1e293b; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #334155; }
+.evt .event-name { font-size: 0.9em; color: #94a3b8; margin-bottom: 8px; }
+.evt .rank { font-size: 2.5em; font-weight: bold; }
+.evt .rank-detail { font-size: 0.85em; color: #64748b; margin-top: 4px; }
+.evt.gold { border-color: #f59e0b; }
+.evt.gold .rank { color: #f59e0b; }
+.evt.bronze { border-color: #cd7f32; }
+.evt.bronze .rank { color: #cd7f32; }
+
+/* Analysis */
+.analysis { background: #1e293b; border-radius: 16px; padding: 24px; margin: 20px 0; border: 1px solid #334155; }
+.analysis h3 { color: #3b82f6; margin-bottom: 12px; }
+.analysis ul { padding-left: 20px; }
+.analysis li { margin: 8px 0; line-height: 1.6; }
+.analysis .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; margin-right: 4px; }
+.tag.strength { background: #166534; color: #4ade80; }
+.tag.note { background: #854d0e; color: #fbbf24; }
+
+/* Footer */
+.footer { text-align: center; padding: 30px; color: #475569; font-size: 0.85em; border-top: 1px solid #1e293b; margin-top: 40px; }
+
+@media (max-width: 768px) {
+    .pr-grid, .compare-grid { grid-template-columns: repeat(2, 1fr); }
+    .event-card { grid-template-columns: 1fr; }
+    .header h1 { font-size: 1.5em; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h1>조주원 스피드스케이팅 대시보드</h1>
+    <div class="subtitle">강명중학교 1학년 | speedskatingresults.com ID: 106570</div>
+    <div style="margin-top: 12px;">
+        <span class="badge">500m PR 45.37</span>
+        <span class="badge">1000m PR 1:30.50</span>
+        <span class="badge">1500m PR 2:15.53</span>
+        <span class="badge">3000m PR 4:46.00</span>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- PR Cards -->
+    <div class="section">
+        <h2>개인 최고 기록 <span>(Personal Records)</span></h2>
+        <div class="pr-grid">
+            <div class="pr-card c500">
+                <div class="dist">500m</div>
+                <div class="time">45.37</div>
+                <div class="date">2026-01-03 | 연령별선수권</div>
+            </div>
+            <div class="pr-card c1000">
+                <div class="dist">1000m</div>
+                <div class="time">1:30.50</div>
+                <div class="date">2026-01-04 | 연령별선수권</div>
+            </div>
+            <div class="pr-card c1500">
+                <div class="dist">1500m</div>
+                <div class="time">2:15.53</div>
+                <div class="date">2026-03-21 | 제61회 전국대회</div>
+            </div>
+            <div class="pr-card c3000">
+                <div class="dist">3000m</div>
+                <div class="time">4:46.00</div>
+                <div class="date">2026-01-04 | 연령별선수권</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 500m Growth -->
+    <div class="section">
+        <h2>500m <span>기록 성장</span></h2>
+        <table>
+            <tr><th>날짜</th><th>대회</th><th>기록</th><th>성장</th></tr>
+            <tr><td>2023-10-07</td><td>2023 공인기록회</td><td>57.22</td><td>-</td></tr>
+            <tr><td>2023-12-09</td><td>제23회 꿈나무대회</td><td>51.06</td><td class="improvement">-6.16초</td></tr>
+            <tr><td>2024-02-24</td><td>2024 전국선수권</td><td>49.18</td><td class="improvement">-1.88초</td></tr>
+            <tr><td>2024-11-23</td><td>제24회 꿈나무대회</td><td>47.57</td><td class="improvement">-1.61초</td></tr>
+            <tr><td>2025-01-02</td><td>2025 전국선수권</td><td>46.86</td><td class="improvement">-0.71초</td></tr>
+            <tr><td>2025-11-15</td><td>제25회 꿈나무대회</td><td>46.99</td><td style="color:#f59e0b">+0.13초</td></tr>
+            <tr><td>2026-01-03</td><td>2026 연령별선수권</td><td class="highlight">45.37</td><td class="improvement">-1.62초 (PR!)</td></tr>
+        </table>
+        <p style="color:#64748b; font-size:0.9em;">총 성장: 57.22초 → 45.37초 = <strong style="color:#22c55e">11.85초 단축 (20.7%)</strong></p>
+    </div>
+
+    <!-- 1000m Growth -->
+    <div class="section">
+        <h2>1000m <span>기록 성장</span></h2>
+        <table>
+            <tr><th>날짜</th><th>대회</th><th>기록</th><th>성장</th></tr>
+            <tr><td>2024-02-25</td><td>2024 전국선수권</td><td>1:38.90</td><td>-</td></tr>
+            <tr><td>2024-10-10</td><td>2024 공인기록회</td><td>1:36.77</td><td class="improvement">-2.13초</td></tr>
+            <tr><td>2025-01-03</td><td>2025 전국선수권</td><td>1:38.07</td><td style="color:#f59e0b">+1.30초</td></tr>
+            <tr><td>2025-11-15</td><td>제25회 꿈나무대회</td><td>1:32.53</td><td class="improvement">-5.54초</td></tr>
+            <tr><td>2026-01-04</td><td>2026 연령별선수권</td><td class="highlight">1:30.50</td><td class="improvement">-2.03초 (PR!)</td></tr>
+        </table>
+        <p style="color:#64748b; font-size:0.9em;">총 성장: 1:38.90 → 1:30.50 = <strong style="color:#22c55e">8.40초 단축 (8.5%)</strong></p>
+    </div>
+
+    <!-- 1500m Growth -->
+    <div class="section">
+        <h2>1500m <span>기록 성장</span></h2>
+        <table>
+            <tr><th>날짜</th><th>대회</th><th>기록</th><th>성장</th></tr>
+            <tr><td>2023-12-09</td><td>제23회 꿈나무대회</td><td>2:45.03</td><td>-</td></tr>
+            <tr><td>2024-02-24</td><td>2024 전국선수권</td><td>2:35.36</td><td class="improvement">-9.67초</td></tr>
+            <tr><td>2024-11-23</td><td>제24회 꿈나무대회</td><td>2:29.45</td><td class="improvement">-5.91초</td></tr>
+            <tr><td>2025-01-02</td><td>2025 전국선수권</td><td>2:29.04</td><td class="improvement">-0.41초</td></tr>
+            <tr><td>2025-10-01</td><td>2025 공인기록회</td><td>2:19.59</td><td class="improvement">-9.45초</td></tr>
+            <tr><td>2026-01-03</td><td>2026 연령별선수권</td><td>2:15.78</td><td class="improvement">-3.81초</td></tr>
+            <tr><td>2026-03-21</td><td>제61회 전국대회</td><td class="highlight">2:15.53</td><td class="improvement">-0.25초 (PR!)</td></tr>
+        </table>
+        <p style="color:#64748b; font-size:0.9em;">총 성장: 2:45.03 → 2:15.53 = <strong style="color:#22c55e">29.50초 단축 (17.9%)</strong></p>
+    </div>
+
+    <!-- 3000m -->
+    <div class="section">
+        <h2>3000m <span>기록</span></h2>
+        <table>
+            <tr><th>날짜</th><th>대회</th><th>기록</th><th>비고</th></tr>
+            <tr><td>2026-01-04</td><td>2026 연령별선수권</td><td class="highlight">4:46.00</td><td class="improvement">PR</td></tr>
+            <tr><td>2026-03-22</td><td>제61회 전국대회</td><td>4:47.93</td><td>8위 (중1 기준 선전)</td></tr>
+        </table>
+    </div>
+
+    <!-- Latest Race -->
+    <div class="section">
+        <h2>최근 대회 <span>2026.03.28 전국대회</span></h2>
+        <div class="race-header">
+            <h3>2026 전국남녀 초/중/고/대/실업 스피드스케이팅대회</h3>
+            <div class="meta">2026-03-28 | 서울 | 소속: 강명중</div>
+        </div>
+
+        <div class="event-card">
+            <div class="evt bronze">
+                <div class="event-name">매스스타트</div>
+                <div class="rank">3위</div>
+                <div class="rank-detail">중/고등 여자 전체</div>
+                <div style="color:#64748b; font-size:0.8em; margin-top:8px;">8바퀴 체력비축 → 막판 스퍼트</div>
+            </div>
+            <div class="evt gold">
+                <div class="event-name">500m</div>
+                <div class="rank">1위</div>
+                <div class="rank-detail">1학년 중 (전체 8위)</div>
+            </div>
+            <div class="evt gold">
+                <div class="event-name">1000m</div>
+                <div class="rank">1위</div>
+                <div class="rank-detail">중1 중 (기록 1:29.25)</div>
+                <div style="color:#64748b; font-size:0.8em; margin-top:8px;">상위 전원 2~3학년</div>
+            </div>
+        </div>
+
+        <!-- 1000m Detail -->
+        <h3 style="margin: 20px 0 10px; color: #94a3b8;">1000m 상세 결과</h3>
+        <table>
+            <tr><th>순위</th><th>선수</th><th>기록</th><th>비고</th></tr>
+            <tr><td>1</td><td>김하엘</td><td>1:25.18</td><td>-</td></tr>
+            <tr><td>2</td><td>안경인</td><td>1:25.56</td><td>2학년</td></tr>
+            <tr><td>3</td><td class="rival">차윤지</td><td>1:25.98</td><td>같은팀 라이벌</td></tr>
+            <tr><td>4</td><td>최운서</td><td>1:26.47</td><td>3학년</td></tr>
+            <tr><td>5</td><td>한마음</td><td>1:26.58</td><td>3학년</td></tr>
+            <tr><td>-</td><td class="highlight">조주원</td><td class="highlight">1:29.25</td><td class="highlight">중1 1위!</td></tr>
+        </table>
+    </div>
+
+    <!-- 주간 성장 -->
+    <div class="section">
+        <h2>주간 성장 <span>지난주 vs 이번주</span></h2>
+        <table>
+            <tr><th></th><th>지난주 (3/22)</th><th>이번주 (3/28)</th><th>변화</th></tr>
+            <tr>
+                <td class="highlight">조주원</td>
+                <td>매스 6위 (5포인트, 텃세)</td>
+                <td>매스 3위 + 500 1학년1위 + 1000 중1 1위</td>
+                <td class="improvement">매스 3단계 UP!</td>
+            </tr>
+            <tr>
+                <td class="rival">차윤지</td>
+                <td>1500/3000 각 4~5초 단축, 매스 2위</td>
+                <td>매스 미참가</td>
+                <td>-</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- VS 오정선 -->
+    <div class="vs-header">
+        <h2>조주원 <span class="vs">VS</span> 오정선</h2>
+        <div style="color:#94a3b8;">둘 다 중1 | 이번 대회 매스스타트 — 정선 1위, 주원 3위</div>
+    </div>
+
+    <div class="compare-grid">
+        <div class="compare-card">
+            <div class="dist">500m</div>
+            <div class="row"><span class="name">주원</span><span class="val jw">45.37</span></div>
+            <div class="row"><span class="name">정선</span><span class="val js">44.40</span></div>
+            <div class="gap">차이: 0.97초</div>
+        </div>
+        <div class="compare-card">
+            <div class="dist">1000m</div>
+            <div class="row"><span class="name">주원</span><span class="val jw">1:30.50</span></div>
+            <div class="row"><span class="name">정선</span><span class="val js">1:27.64</span></div>
+            <div class="gap">차이: 2.86초</div>
+        </div>
+        <div class="compare-card">
+            <div class="dist">1500m</div>
+            <div class="row"><span class="name">주원</span><span class="val jw">2:15.53</span></div>
+            <div class="row"><span class="name">정선</span><span class="val js">2:12.81</span></div>
+            <div class="gap">차이: 2.72초</div>
+        </div>
+        <div class="compare-card">
+            <div class="dist">3000m</div>
+            <div class="row"><span class="name">주원</span><span class="val jw">4:46.00</span></div>
+            <div class="row"><span class="name">정선</span><span class="val js">4:38.85</span></div>
+            <div class="gap">차이: 7.15초</div>
+        </div>
+    </div>
+
+    <!-- 성장률 비교 -->
+    <div class="section">
+        <h2>성장률 비교 <span>(첫 기록 대비 개선율)</span></h2>
+
+        <h3 style="margin: 16px 0 8px; color: #ef4444;">500m</h3>
+        <div class="growth-bar">
+            <span class="label">주원</span>
+            <div class="bar-bg"><div class="bar-fill jw" style="width:80%">20.7%</div></div>
+        </div>
+        <div class="growth-bar">
+            <span class="label">정선</span>
+            <div class="bar-bg"><div class="bar-fill js" style="width:34%">8.5%</div></div>
+        </div>
+
+        <h3 style="margin: 16px 0 8px; color: #3b82f6;">1000m</h3>
+        <div class="growth-bar">
+            <span class="label">주원</span>
+            <div class="bar-bg"><div class="bar-fill jw" style="width:34%">8.5%</div></div>
+        </div>
+        <div class="growth-bar">
+            <span class="label">정선</span>
+            <div class="bar-bg"><div class="bar-fill js" style="width:55%">13.7%</div></div>
+        </div>
+
+        <h3 style="margin: 16px 0 8px; color: #22c55e;">1500m</h3>
+        <div class="growth-bar">
+            <span class="label">주원</span>
+            <div class="bar-bg"><div class="bar-fill jw" style="width:72%">17.9%</div></div>
+        </div>
+        <div class="growth-bar">
+            <span class="label">정선</span>
+            <div class="bar-bg"><div class="bar-fill js" style="width:58%">14.5%</div></div>
+        </div>
+    </div>
+
+    <!-- 라이벌 분석 -->
+    <div class="section">
+        <h2>라이벌 분석 <span>차윤지 (같은팀, 별가람중)</span></h2>
+        <table>
+            <tr><th>항목</th><th class="highlight">조주원</th><th class="rival">차윤지</th></tr>
+            <tr><td>체격</td><td>작음</td><td>+10cm, +10kg</td></tr>
+            <tr><td>기술/자세</td><td style="color:#22c55e">더 좋음</td><td>보통</td></tr>
+            <tr><td>힘/덩치</td><td>한계</td><td style="color:#22c55e">강점</td></tr>
+            <tr><td>두뇌/전략</td><td style="color:#22c55e">탁월</td><td>이번주 약함</td></tr>
+            <tr><td>매스스타트</td><td style="color:#22c55e">우위</td><td>열세</td></tr>
+            <tr><td>장거리/스프린트</td><td>현재 열세</td><td style="color:#22c55e">우위</td></tr>
+            <tr><td>500m 베스트</td><td colspan="2" style="text-align:center">주원이 근소 우위</td></tr>
+        </table>
+    </div>
+
+    <!-- 강점 분석 -->
+    <div class="analysis">
+        <h3>강점 분석 & 추천 방향</h3>
+        <ul>
+            <li><span class="tag strength">강점</span> 기술/자세 이미 언니들급, 두뇌/전략은 오히려 위</li>
+            <li><span class="tag strength">강점</span> 같은 학년 중 독보적 (500m 1학년 1위, 1000m 중1 1위)</li>
+            <li><span class="tag strength">강점</span> 침착함, 집중력, 순간 판단력 — "똑똑한 경기"</li>
+            <li><span class="tag note">추천</span> 매스스타트 집중 투자 — 두뇌+기술로 피지컬 커버 가능</li>
+            <li><span class="tag note">추천</span> 500m 단거리 갈고닦기 — 기술로 커버 가능, 기록 단축 중</li>
+            <li><span class="tag note">추천</span> 1000m 이상 장거리는 체격이 따라올 때까지 조급하지 않게</li>
+            <li><span class="tag note">추천</span> vs 오정선: 500m 격차 1초 미만 — 가장 먼저 따라잡을 수 있는 종목</li>
+        </ul>
+    </div>
+
+    <div class="footer">
+        데이터 출처: speedskatingresults.com (API) + 대회 현장 기록<br>
+        마지막 업데이트: 2026-03-28 | 조주원 스피드스케이팅 대시보드
+    </div>
+
+</div>
+</body>
+</html>
