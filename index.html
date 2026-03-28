@@ -243,18 +243,6 @@ tr:hover { background: rgba(51,65,85,0.3); }
         </table>
     </div>
 
-    <!-- 선수 비교기 -->
-    <div class="section" id="comparator">
-        <h2>선수 비교 <span>(최대 5명)</span></h2>
-        <div class="cmp-search">
-            <input type="text" id="cmpName" placeholder="선수 이름 (영문, 예: Oh Jeong-Seon)" onkeydown="if(event.key==='Enter')searchSkater()">
-            <button onclick="searchSkater()">검색</button>
-        </div>
-        <div class="cmp-results" id="cmpResults"></div>
-        <div class="cmp-slots" id="cmpSlots"></div>
-        <div id="cmpOutput"></div>
-    </div>
-
     <div class="section" id="analysis">
         <div class="analysis">
             <h3>강점 분석 & 추천 방향</h3>
@@ -269,6 +257,18 @@ tr:hover { background: rgba(51,65,85,0.3); }
                 <li><span class="tag warn">주의</span> 윤지 비교 스트레스 관리 — 종목별로 분리해서 보기</li>
             </ul>
         </div>
+    </div>
+
+    <!-- 선수 비교기 -->
+    <div class="section" id="comparator">
+        <h2>선수 비교 <span>(최대 5명)</span></h2>
+        <div class="cmp-search">
+            <input type="text" id="cmpName" placeholder="선수 이름 (영문, 예: Oh Jeong-Seon)" onkeydown="if(event.key==='Enter')searchSkater()">
+            <button onclick="searchSkater()">검색</button>
+        </div>
+        <div class="cmp-results" id="cmpResults"></div>
+        <div class="cmp-slots" id="cmpSlots"></div>
+        <div id="cmpOutput"></div>
     </div>
 
     <div class="footer">
