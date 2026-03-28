@@ -300,7 +300,22 @@ function ft(s){if(s>=60){const m=Math.floor(s/60);return m+':'+(s-m*60).toFixed(
 
 let SD={},curDist=500,gChart,pChart,vChart;
 
-async function fj(u){try{const r=await fetch(u);if(!r.ok)throw new Error();return await r.json()}catch(e){return null}}
+const PROXIES=['https://api.allorigins.win/raw?url=','https://corsproxy.io/?'];
+let proxyIdx=0;
+
+async function fj(u){
+    // Direct first
+    try{const r=await fetch(u,{signal:AbortSignal.timeout(5000)});if(r.ok)return await r.json()}catch(e){}
+    // Try proxies
+    for(let i=0;i<PROXIES.length;i++){
+        try{
+            const px=PROXIES[(proxyIdx+i)%PROXIES.length];
+            const r=await fetch(px+encodeURIComponent(u),{signal:AbortSignal.timeout(8000)});
+            if(r.ok){proxyIdx=(proxyIdx+i)%PROXIES.length;return await r.json()}
+        }catch(e){}
+    }
+    return null;
+}
 
 // ===== 내장 데이터 (API CORS 우회) =====
 const EMBEDDED_DATA={
