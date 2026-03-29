@@ -189,7 +189,7 @@ tr:hover { background: rgba(51,65,85,0.3); }
 <div class="container">
     <div class="section" id="pr">
         <h2>개인 최고 기록 <span>(Personal Records)</span></h2>
-        <div class="pr-grid" id="prGrid"><div class="loading"><div class="spinner"></div><br>API에서 데이터 로딩 중...</div></div>
+        <div class="pr-grid" id="prGrid"><div class="loading"><div class="spinner"></div><br>데이터 로딩 중...</div></div>
     </div>
 
     <div class="section" id="growth">
@@ -398,6 +398,12 @@ function switchMainSkater(){
     const id=parseInt(sel.value);
     if(!id||!ALL_SKATER_DATA[id])return;
     currentSkater=id;
+
+    // 로딩 표시
+    document.getElementById('prGrid').innerHTML='<div class="loading"><div class="spinner"></div><br>데이터 로딩 중...</div>';
+    document.getElementById('recordTable').innerHTML='';
+    document.getElementById('predictGrid').innerHTML='';
+    document.getElementById('cmpOutput').innerHTML='';
     const d=ALL_SKATER_DATA[id];
     SD.pr=d.pr;
     DISTS.forEach(dist=>{SD[dist]=d.results?.[dist]||[]});
@@ -781,6 +787,10 @@ async function addSkater(id,name){
     document.getElementById('cmpResults').innerHTML='';
     const nameInput=document.getElementById('cmpName');
     if(nameInput)nameInput.value='';
+
+    // 로딩 표시
+    const output=document.getElementById('cmpOutput');
+    output.innerHTML=`<div class="loading"><div class="spinner"></div><br>${name} 데이터 로딩 중...</div>`;
 
     // 로컬 JSON에서 먼저 찾기
     const local=ALL_SKATER_DATA[id];
