@@ -133,8 +133,8 @@ tr:hover { background: rgba(51,65,85,0.3); }
 .cmp-table th { background: var(--border); color: var(--muted); padding: 14px 16px; text-align: center; font-size: 0.85em; }
 .cmp-table td { padding: 14px 16px; text-align: center; border-bottom: 1px solid rgba(51,65,85,0.5); font-size: 1em; }
 .cmp-table tr:hover { background: rgba(51,65,85,0.2); }
-.cmp-table .winner { color: var(--green); font-weight: bold; position: relative; }
-.cmp-table .winner::after { content: ' \u2714'; }
+.cmp-table .winner { color: var(--green); font-weight: bold; background: rgba(34,197,94,0.1); }
+.cmp-table .best-marker { color: var(--yellow); font-size: 0.75em; margin-left: 4px; }
 .cmp-table .label-col { text-align: left; color: var(--muted); font-weight: 600; }
 
 /* Calendar */
@@ -1011,25 +1011,29 @@ function renderComparison(){
         const best=validTimes.length?Math.min(...validTimes):null;
         const cells=times.map((t,i)=>{
             const isBest=t!==null&&t===best&&validTimes.length>1;
-            return`<td class="${isBest?'winner':''}">${t!==null?ft(t):'-'}</td>`;
+            let diff='';
+            if(t!==null&&best!==null&&t!==best)diff=`<div style="font-size:0.75em;color:var(--red)">+${(t-best).toFixed(2)}초</div>`;
+            return`<td class="${isBest?'winner':''}">${t!==null?ft(t):'-'}${isBest?'<span class="best-marker">1st</span>':''}${diff}</td>`;
         }).join('');
         rows+=`<tr><td class="label-col">${DNAME[d]} PR</td>${cells}</tr>`;
     });
 
     // Growth rates
-    [500,1000,1500].forEach(d=>{
+    DISTS.filter(d=>d!==2000&&d!==3000).forEach(d=>{
         const rates=cmpSkaters.map(s=>{
             const results=s.data[d]||[];
             if(results.length<2)return null;
-            const first=pt(results[results.length-1].time);
-            const best=Math.min(...results.map(r=>pt(r.time||r.record)));
-            return((first-best)/first*100);
+            const first=pt(results[results.length-1].time||results[results.length-1].record);
+            const bestT=Math.min(...results.map(r=>pt(r.time||r.record)).filter(v=>v&&isFinite(v)));
+            if(!first||!bestT||!isFinite(first)||first===0)return null;
+            const rate=(first-bestT)/first*100;
+            return isFinite(rate)?rate:null;
         });
-        const validRates=rates.filter(r=>r!==null);
+        const validRates=rates.filter(r=>r!==null&&isFinite(r));
         const bestRate=validRates.length?Math.max(...validRates):null;
         const cells=rates.map((r,i)=>{
             const isBest=r!==null&&r===bestRate&&validRates.length>1;
-            return`<td class="${isBest?'winner':''}">${r!==null?r.toFixed(1)+'%':'-'}</td>`;
+            return`<td class="${isBest?'winner':''}">${r!==null&&isFinite(r)?r.toFixed(1)+'%':'-'}${isBest?'<span class="best-marker">1st</span>':''}</td>`;
         }).join('');
         rows+=`<tr><td class="label-col">${DNAME[d]} 성장률</td>${cells}</tr>`;
     });
