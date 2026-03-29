@@ -222,7 +222,7 @@ tr:hover { background: rgba(51,65,85,0.3); }
         <div id="calGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px"></div>
     </div>
 
-    <div class="section" id="latest">
+    <div class="section juwon-only" id="latest">
         <h2>최근 대회 <span>2026.03.28</span></h2>
         <div style="background:linear-gradient(135deg,var(--card),rgba(51,65,85,0.3));border-radius:16px;padding:24px;margin-bottom:20px;border-left:4px solid var(--blue)">
             <h3 style="font-size:1.2em;margin-bottom:6px">2026 전국남녀 초/중/고/대/실업 스피드스케이팅대회</h3>
@@ -245,7 +245,7 @@ tr:hover { background: rgba(51,65,85,0.3); }
         </table>
     </div>
 
-    <div class="section" id="analysis">
+    <div class="section juwon-only" id="analysis">
         <div class="analysis">
             <h3>강점 분석 & 추천 방향</h3>
             <ul>
@@ -432,6 +432,11 @@ function switchMainSkater(){
     renderSlots();
     document.getElementById('cmpOutput').innerHTML='';
 
+    // 주원이 전용 섹션 표시/숨김
+    document.querySelectorAll('.juwon-only').forEach(el=>{
+        el.style.display=(id===106570)?'':'none';
+    });
+
     // 차트 초기화 후 렌더
     curDist=500;
     if(gChart){gChart.destroy();gChart=null}
@@ -479,6 +484,12 @@ async function init(){
     cmpSkaters=[{id:currentSkater,name:info?.name||name,pr:null,data:{}}];
 
     document.getElementById('mainSkaterSelect').value=currentSkater;
+
+    // 주원이 전용 섹션 표시/숨김
+    document.querySelectorAll('.juwon-only').forEach(el=>{
+        el.style.display=(currentSkater===106570)?'':'none';
+    });
+
     render();
 }
 
