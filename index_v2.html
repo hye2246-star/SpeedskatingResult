@@ -123,9 +123,9 @@ tr:hover { background: rgba(51,65,85,0.3); }
 .cmp-results { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
 .cmp-chip { padding: 6px 12px; border-radius: 20px; font-size: 0.85em; cursor: pointer; border: 1px solid var(--border); background: var(--card); color: var(--text); }
 .cmp-chip:hover { border-color: var(--blue); }
-.cmp-slots { display: flex; gap: 12px; margin-bottom: 0; }
-.cmp-slots::before { content: ''; width: 100px; min-width: 100px; flex-shrink: 0; }
-.cmp-slot { flex: 1; background: var(--card); border-radius: 12px 12px 0 0; padding: 14px 8px; border: 2px dashed var(--border); text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.3s; }
+.cmp-wrapper { display: grid; gap: 0; }
+.cmp-slots { display: flex; gap: 0; }
+.cmp-slot { flex: 1; background: var(--card); padding: 14px 8px; border: 1px solid var(--border); text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.3s; }
 .cmp-slot.filled { border-style: solid; }
 .cmp-slot .slot-name { font-size: 1.3em; font-weight: 800; margin-bottom: 4px; }
 .cmp-slot .slot-info { font-size: 0.85em; color: var(--dim); }
@@ -1011,7 +1011,7 @@ function renderSlots(){
             <div class="slot-info">ID: ${s.id}</div>
             ${i>0?`<div class="slot-remove" onclick="removeSkater(${i})">X 제거</div>`:''}
         </div>`
-    ).join('') + (cmpSkaters.length<5?`<div class="cmp-slot" style="cursor:pointer" onclick="document.getElementById('cmpName').focus()"><div style="color:var(--dim)">+ 선수 추가 (${cmpSkaters.length}/5)</div></div>`:'');
+    ).join('');
 }
 
 async function searchSkater(){
@@ -1139,10 +1139,20 @@ function renderComparison(){
     const totals=cmpSkaters.map(s=>DISTS.reduce((sum,d)=>(s.data[d]||[]).length+sum,0));
     rows+=`<tr><td class="label-col">총 기록수</td>${totals.map(t=>`<td>${t}</td>`).join('')}</tr>`;
 
+    // 슬롯을 테이블 첫 행처럼 보이게 재구성
+    const el=document.getElementById('cmpSlots');
+    el.innerHTML=`<div class="cmp-slot" style="background:var(--border);justify-content:flex-end;padding:8px"><span style="color:var(--muted);font-size:0.85em">항목</span></div>`+
+        cmpSkaters.map((s,i)=>
+            `<div class="cmp-slot filled" style="border-color:${CMP_COLORS[i]}">
+                <div class="slot-name" style="color:${CMP_COLORS[i]}">${s.name}</div>
+                <div style="font-size:0.75em;color:var(--dim)">${ALL_SKATER_DATA[s.id]?.team||SKATER_LIST.find(x=>x.id===s.id)?.team||''}</div>
+                ${i>0?`<div class="slot-remove" onclick="removeSkater(${i})">X 제거</div>`:''}
+            </div>`
+        ).join('');
+
     const output=document.getElementById('cmpOutput');
     output.innerHTML=`
-    <table class="cmp-table">
-        <tr><th style="text-align:left">항목</th>${headers}</tr>
+    <table class="cmp-table" style="border-radius:0">
         ${rows}
     </table>
     <div style="margin-top:20px">
