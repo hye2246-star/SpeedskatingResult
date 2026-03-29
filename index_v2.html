@@ -698,9 +698,10 @@ function renderCal(){
         if(isActive){statusCls='live';statusText='진행중'}
         else if(!isPast){statusCls='soon';statusText='예정'}
 
+        const eName=encodeURIComponent(e.name);
         const links=`<div class="cal-links">
-            <a href="https://result.sports.or.kr/SK/INF201.do" target="_blank" class="cal-link results">대회 결과</a>
-            <a href="https://result.sports.or.kr/SK/INF308.do" target="_blank" class="cal-link vod">경기 영상</a>
+            <a href="javascript:void(0)" onclick="searchSportsKR('INF201','${eName}')" class="cal-link results">대회 결과</a>
+            <a href="javascript:void(0)" onclick="searchSportsKR('INF308','${eName}')" class="cal-link vod">경기 영상</a>
         </div>`;
 
         return`<div class="${cls}">
@@ -765,6 +766,27 @@ function renderLatest(){
     });
 
     document.getElementById('latestContent').innerHTML=html;
+}
+
+function searchSportsKR(page,keyword){
+    keyword=decodeURIComponent(keyword);
+    const form=document.createElement('form');
+    form.method='POST';
+    form.action='https://result.sports.or.kr/SK/'+page+'.do';
+    form.target='_blank';
+    const input=document.createElement('input');
+    input.type='hidden';
+    input.name='searchKeyword';
+    input.value=keyword;
+    const input2=document.createElement('input');
+    input2.type='hidden';
+    input2.name='pageIndex';
+    input2.value='1';
+    form.appendChild(input);
+    form.appendChild(input2);
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
 }
 
 renderCal();
