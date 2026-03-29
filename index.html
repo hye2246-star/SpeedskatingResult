@@ -291,13 +291,22 @@ tr:hover { background: rgba(51,65,85,0.3); }
 </div>
 
 <script>
-const SKATER=106570;
+const SKATER='202308014128';
 const API='https://speedskatingresults.com/api/json';
 const DISTS=[500,1000,1500,3000];
 const DCOL={500:'#ef4444',1000:'#3b82f6',1500:'#22c55e',3000:'#f59e0b'};
 const DNAME={500:'500m',1000:'1000m',1500:'1500m',3000:'3000m'};
 
-function pt(t){t=t.replace(',','.');const p=t.split('.');return p.length===3?parseInt(p[0])*60+parseInt(p[1])+parseFloat('0.'+p[2]):parseFloat(t)}
+function pt(t){
+    if(!t)return null;
+    t=t.replace(',','.').replace(/\([^)]*\)/g,'').trim();
+    // Handle "1:29.25" format
+    if(t.includes(':')){const p=t.split(':');return parseInt(p[0])*60+parseFloat(p[1])}
+    // Handle "1.30.50" format (old API)
+    const p=t.split('.');
+    if(p.length===3)return parseInt(p[0])*60+parseInt(p[1])+parseFloat('0.'+p[2]);
+    return parseFloat(t);
+}
 function ft(s){if(s>=60){const m=Math.floor(s/60);return m+':'+(s-m*60).toFixed(2).padStart(5,'0')}return s.toFixed(2)}
 
 let SD={},curDist=500,gChart,pChart,vChart;
@@ -364,16 +373,16 @@ function populateMainSelect(){
     // 선수 리스트에서 데이터 있는 선수만
     const withData=SKATER_LIST.filter(s=>{
         const d=ALL_SKATER_DATA[s.id];
-        return d && (d.pr?.records?.length>0 || Object.values(d.results||{}).some(r=>r.length>0));
+        return d && (d.pr?.length>0 || Object.values(d.results||{}).some(r=>r.length>0));
     });
-    const noData=SKATER_LIST.filter(s=>!withData.find(w=>w.id===s.id) && s.id>0);
+    const noData=SKATER_LIST.filter(s=>!withData.find(w=>w.id===s.id));
 
     const g1=document.createElement('optgroup');
     g1.label='데이터 있는 선수';
     withData.forEach(s=>{
         const opt=document.createElement('option');
         opt.value=s.id;
-        opt.textContent=s.name;
+        opt.textContent=s.name+' ('+s.team+')';
         if(s.id===currentSkater)opt.selected=true;
         g1.appendChild(opt);
     });
@@ -405,8 +414,7 @@ function switchMainSkater(){
     document.getElementById('predictGrid').innerHTML='';
     document.getElementById('cmpOutput').innerHTML='';
     const skd=ALL_SKATER_DATA[id];
-    SD.pr=skd.pr;
-    // 키가 문자열(500 vs "500")일 수 있으므로 둘 다 체크
+    SD.pr={records: skd.pr || []};
     DISTS.forEach(dist=>{SD[dist]=skd.results?.[dist]||skd.results?.[String(dist)]||[]});
 
     // URL 업데이트
@@ -423,7 +431,7 @@ function switchMainSkater(){
     // PR 뱃지
     const prs=SD.pr?.records||[];
     document.getElementById('headerBadges').innerHTML=prs.map(r=>{
-        const s=pt(r.time);
+        const s=pt(r.time||r.record);
         return`<span class="badge">${DNAME[r.distance]} PR ${ft(s)}</span>`;
     }).join('');
 
@@ -434,7 +442,7 @@ function switchMainSkater(){
 
     // 주원이 전용 섹션 표시/숨김
     document.querySelectorAll('.juwon-only').forEach(el=>{
-        el.style.display=(id===106570)?'':'none';
+        el.style.display=(id===SKATER)?'':'none';
     });
 
     // 차트 초기화 후 렌더
@@ -461,7 +469,7 @@ async function init(){
     // 선수 데이터 로드
     const skData=ALL_SKATER_DATA[currentSkater];
     if(skData){
-        SD.pr=skData.pr;
+        SD.pr={records: skData.pr || []};
         DISTS.forEach(d=>{SD[d]=skData.results?.[d]||skData.results?.[String(d)]||[]});
     } else {
         SD.pr=EMBEDDED_DATA.pr;
@@ -476,7 +484,7 @@ async function init(){
 
     const prs=SD.pr?.records||[];
     document.getElementById('headerBadges').innerHTML=prs.map(r=>{
-        const s=pt(r.time);
+        const s=pt(r.time||r.record);
         return`<span class="badge">${DNAME[r.distance]} PR ${ft(s)}</span>`;
     }).join('');
 
@@ -487,7 +495,7 @@ async function init(){
 
     // 주원이 전용 섹션 표시/숨김
     document.querySelectorAll('.juwon-only').forEach(el=>{
-        el.style.display=(currentSkater===106570)?'':'none';
+        el.style.display=(currentSkater===SKATER)?'':'none';
     });
 
     render();
@@ -503,10 +511,15 @@ function render(){
 function renderPR(){
     const r=SD.pr?.records||[];
     document.getElementById('prGrid').innerHTML=r.map(rec=>{
-        const s=pt(rec.time),cls='c'+rec.distance,all=SD[rec.distance]||[];
+        const t=rec.time||rec.record;
+        const s=pt(t),cls='c'+rec.distance,all=SD[rec.distance]||[];
         let imp='';
-        if(all.length>1){const f=pt(all[all.length-1].time);imp=`<div class="improve">${(f-s).toFixed(2)}초 단축</div>`}
-        return`<div class="pr-card ${cls}"><div class="dist">${DNAME[rec.distance]}</div><div class="time">${ft(s)}</div><div class="date">${rec.date}</div>${imp}</div>`
+        if(all.length>1){
+            const lastT=all[all.length-1].time||all[all.length-1].record;
+            const f=pt(lastT);
+            if(f&&s)imp=`<div class="improve">${(f-s).toFixed(2)}초 단축</div>`;
+        }
+        return`<div class="pr-card ${cls}"><div class="dist">${DNAME[rec.distance]}</div><div class="time">${s?ft(s):t}</div><div class="date">${rec.date}</div>${imp}</div>`
     }).join('');
 }
 
@@ -519,7 +532,7 @@ function switchD(d){curDist=d;renderTabs();renderGrowth(d)}
 
 function renderGrowth(dist){
     const res=(SD[dist]||[]).slice().reverse();if(!res.length)return;
-    const labels=res.map(r=>r.date),times=res.map(r=>pt(r.time)),names=res.map(r=>r.name||'');
+    const labels=res.map(r=>r.date),times=res.map(r=>pt(r.time||r.record)),names=res.map(r=>r.name||r.tournament||'');
     if(gChart)gChart.destroy();
     gChart=new Chart(document.getElementById('growthChart'),{type:'line',data:{labels,datasets:[{
         label:`조주원 ${DNAME[dist]}`,data:times,borderColor:DCOL[dist],backgroundColor:DCOL[dist]+'20',
@@ -529,10 +542,10 @@ function renderGrowth(dist){
 
     const minT=Math.min(...times);
     document.getElementById('recordTable').innerHTML=`<table><tr><th>날짜</th><th>대회</th><th>기록</th><th>변화</th></tr>${res.map((r,i)=>{
-        const t=pt(r.time),prev=i>0?pt(res[i-1].time):null,diff=prev!==null?t-prev:null;
+        const t=pt(r.time||r.record),prev=i>0?pt(res[i-1].time):null,diff=prev!==null?t-prev:null;
         const ds=diff===null?'-':diff<=0?`<span class="up">${diff.toFixed(2)}초</span>`:`<span class="down">+${diff.toFixed(2)}초</span>`;
         const isPR=t===minT;
-        return`<tr><td>${r.date}</td><td>${r.name||''}</td><td ${isPR?'class="hl"':''}>${ft(t)}</td><td>${ds}${isPR?' <span class="hl">(PR!)</span>':''}</td></tr>`
+        return`<tr><td>${r.date}</td><td>${r.name||r.tournament||''}</td><td ${isPR?'class="hl"':''}>${ft(t)}</td><td>${ds}${isPR?' <span class="hl">(PR!)</span>':''}</td></tr>`
     }).join('')}</table>
     <p style="color:var(--dim);font-size:0.9em">총 성장: ${ft(times[0])} → ${ft(times[times.length-1])} = <strong style="color:var(--green)">${(times[0]-times[times.length-1]).toFixed(2)}초 단축 (${((times[0]-times[times.length-1])/times[0]*100).toFixed(1)}%)</strong></p>`;
 }
@@ -550,7 +563,7 @@ function renderPredict(){
     [500,1000,1500].forEach(dist=>{
         const res=(SD[dist]||[]).slice().reverse();if(res.length<3)return;
         const base=new Date(res[0].date).getTime();
-        const data=res.map(r=>({x:(new Date(r.date).getTime()-base)/864e5,y:pt(r.time)}));
+        const data=res.map(r=>({x:(new Date(r.date).getTime()-base)/864e5,y:pt(r.time||r.record)}));
         const reg=linReg(data);if(!reg||reg.slope>=0)return;
         const best=Math.min(...data.map(d=>d.y));
         const targets={500:[44,43,42],1000:[88,86,84],1500:[132,128,125]};
@@ -564,7 +577,7 @@ function renderPredict(){
         const labels=res.map(r=>r.date);
         const last=data[data.length-1].x;
         for(let i=1;i<=12;i++){const fd=last+i*30;labels.push(new Date(base+fd*864e5).toISOString().split('T')[0])}
-        series.push({dist,labels,actual:res.map(r=>pt(r.time)),predicted:labels.map((_,i)=>{
+        series.push({dist,labels,actual:res.map(r=>pt(r.time||r.record)),predicted:labels.map((_,i)=>{
             const d=i<res.length?data[i].x:data[data.length-1].x+(i-res.length+1)*30;return reg.predict(d)})})
     });
 
@@ -587,7 +600,7 @@ function renderPredict(){
 function renderGrowthRatesSolo(){
     document.getElementById('growthRates').innerHTML=[500,1000,1500].map(d=>{
         const jw=SD[d]||[];if(!jw.length)return'';
-        const jwF=pt(jw[jw.length-1].time),jwB=Math.min(...jw.map(r=>pt(r.time)));
+        const jwF=pt(jw[jw.length-1].time),jwB=Math.min(...jw.map(r=>pt(r.time||r.record)));
         const jwP=((jwF-jwB)/jwF*100).toFixed(1);
         return`<div class="growth-item"><h4 style="color:${DCOL[d]}">${DNAME[d]}</h4>
         <div class="gbar"><div class="gbar-label"><span>성장률</span><span style="color:var(--green)">${jwP}%</span></div><div class="gbar-track"><div class="gbar-fill" style="width:${jwP}%;background:linear-gradient(90deg,${DCOL[d]},${DCOL[d]}cc)">${jwP}%</div></div></div>
@@ -674,48 +687,48 @@ function renderCal(){
 }
 renderCal();
 
-// ===== SKATER LIST (여자 중학부) =====
+// ===== SKATER LIST (result.sports.or.kr 데이터) =====
 const SKATER_LIST=[
-// 중1 (2013년생)
-{id:106570,name:'조주원 (Cho Ju-Won)',grade:'중1'},
-{id:106574,name:'오정선 (Oh Jeong-Seon)',grade:'중1'},
-{id:106566,name:'박서윤 (Park Seo-Yun)',grade:'중1'},
-{id:113575,name:'홍서영 (Hong Seo-Yeong)',grade:'중1'},
-{id:120384,name:'권태연 (Kweon Tae-Yeon)',grade:'중1'},
-{id:100909,name:'김시연 (Kim Si-Yeon)',grade:'중1'},
-{id:93909,name:'김현명 (Kim Hyun-Myung)',grade:'중1'},
-{id:113586,name:'방예나 (Bang Ye-Na)',grade:'중1'},
-{id:113574,name:'서하윤 (Seo Ha-Yoon)',grade:'중1'},
-{id:113572,name:'김단아 (Kim Dan-A)',grade:'중1'},
-{id:100914,name:'김현아 (Kim Hyun-Ah)',grade:'중1'},
-{id:120395,name:'오채은 (Oh Chae-Eun)',grade:'중1'},
-{id:113576,name:'구다연 (Ku Da-Yeon)',grade:'중1'},
-{id:120393,name:'홍예서 (Hong Ye-Seo)',grade:'중1'},
-{id:113577,name:'김가연 (Kim Ka-Yeon)',grade:'중1'},
-{id:106569,name:'정예원 (Jung Ye-Won)',grade:'중1'},
-{id:120396,name:'천규림 (Cheon Kyu-Lim)',grade:'중1'},
-{id:108163,name:'박서아 (Park Seo-A)',grade:'중1'},
-{id:106981,name:'노하민 (No Ha-Naim)',grade:'중1'},
-{id:120999,name:'이나원 (Lee Na-Weon)',grade:'중1'},
-{id:100911,name:'황준희 (Hwang Jun-Hui)',grade:'중1'},
-{id:113585,name:'신시아 (Shin See-A)',grade:'중1'},
-{id:99890,name:'노윤성 (No Yun-Sung)',grade:'중1'},
-{id:93244,name:'박린하 (Park Rin-Ha)',grade:'중1'},
-{id:113579,name:'이리경 (Lee Ri-Kyeong)',grade:'중1'},
-{id:113587,name:'윤솔비 (Yun Sol-Bi)',grade:'중1'},
-{id:113590,name:'김지은 (Kim Jee-Eun)',grade:'중1'},
-{id:108164,name:'김민채 (Kim Min-Chae)',grade:'중1'},
-{id:99889,name:'조수민 (Cho Su-Min)',grade:'중1'},
-// 중2~3 (race_2026_03_28.md 기반)
-{id:0,name:'차윤지 (Cha Yun-Ji)',grade:'중1',note:'같은팀'},
-{id:0,name:'김하엘 (Kim Ha-El)',grade:'중2~3'},
-{id:0,name:'안경인 (An Gyeong-In)',grade:'중2'},
-{id:0,name:'최운서 (Choi Un-Seo)',grade:'중3'},
-{id:0,name:'한마음 (Han Ma-Eum)',grade:'중3'},
-{id:0,name:'손하나 (Son Ha-Na)',grade:'중3'},
-{id:0,name:'전서현 (Jeon Seo-Hyeon)',grade:'중3'},
-{id:0,name:'박서영 (Park Seo-Young)',grade:'중2'},
-{id:0,name:'최하연 (Choi Ha-Yeon)',grade:'중2'},
+// 중1
+{id:'202308014128',name:'조주원',team:'강명중학교',grade:'중1'},
+{id:'202204087201',name:'오정선',team:'USC',grade:'중1'},
+{id:'202311008872',name:'차윤지',team:'별가람중학교',grade:'중1',note:'같은팀'},
+{id:'202309001009',name:'박서윤',team:'경희초',grade:'중1'},
+{id:'202311007740',name:'홍서영',team:'한국삼육중',grade:'중1'},
+{id:'202306011934',name:'권태연',team:'풍천중',grade:'중1'},
+{id:'202208020418',name:'김시연',team:'하랑초',grade:'중1'},
+{id:'202102003897',name:'김현명',team:'강명초',grade:'중1'},
+{id:'202307000598',name:'방예나',team:'매봉초',grade:'중1'},
+{id:'202311007310',name:'서하윤',team:'은석초',grade:'중1'},
+{id:'202306012964',name:'김단아',team:'금성초',grade:'중1'},
+{id:'200409019962',name:'김현아',team:'과천중',grade:'중1'},
+{id:'202401009427',name:'오채은',team:'남양주샛별초',grade:'중1'},
+{id:'202312000148',name:'구다연',team:'다산새봄초',grade:'중1'},
+{id:'202311006707',name:'홍예서',team:'DSC',grade:'중1'},
+{id:'202405022021',name:'김가연',team:'강원체육중',grade:'중1'},
+{id:'202306010472',name:'정예원',team:'미사강변중',grade:'중1'},
+{id:'202307004405',name:'천규림',team:'바른초',grade:'중1'},
+{id:'202303024038',name:'박서아',team:'성남매송초',grade:'중1'},
+{id:'202309003433',name:'노하민',team:'금병초',grade:'중1'},
+{id:'202411006463',name:'이나원',team:'경의초',grade:'중1'},
+{id:'202207000344',name:'황준희',team:'춘천교대부설초',grade:'중1'},
+{id:'202403086568',name:'신시아',team:'춘천교대부설초',grade:'중1'},
+{id:'202205008776',name:'노윤성',team:'양평초',grade:'중1'},
+{id:'202107002763',name:'박린하',team:'춘천교대부설초',grade:'중1'},
+{id:'202311007330',name:'이리경',team:'의정부부용초',grade:'중1'},
+{id:'202403008084',name:'윤솔비',team:'남양주덕송초',grade:'중1'},
+{id:'202306065699',name:'김지은',team:'USC',grade:'중1'},
+{id:'202107003419',name:'조수민',team:'양평초',grade:'중1'},
+// 중2~3
+{id:'202202003327',name:'김하엘',team:'다산한강중',grade:'중2~3'},
+{id:'202208000959',name:'안경인',team:'USC',grade:'중2'},
+{id:'201907003767',name:'최운서',team:'낙원중',grade:'중3'},
+{id:'202208001727',name:'한마음',team:'다산새봄중',grade:'중3'},
+{id:'201811000108',name:'손하나',team:'성덕여중',grade:'중3'},
+{id:'201405002791',name:'전서현',team:'갈매중',grade:'중3'},
+{id:'202207006752',name:'박서영',team:'USC',grade:'중2'},
+{id:'200907003019',name:'최하연',team:'비산초',grade:'중2'},
+{id:'201807002595',name:'김민채',team:'명진중',grade:'중2'},
 ];
 
 function populateSelect(){
@@ -811,7 +824,7 @@ async function addSkater(id,name){
     // 로컬 JSON에서 먼저 찾기
     const local=ALL_SKATER_DATA[id];
     if(local){
-        const skater={id,name,pr:local.pr,data:{}};
+        const skater={id,name,pr:{records:local.pr||[]},data:{}};
         DISTS.forEach(d=>{skater.data[d]=local.results?.[d]||local.results?.[String(d)]||[]});
         cmpSkaters.push(skater);
         renderSlots();
@@ -853,7 +866,7 @@ function renderComparison(){
     DISTS.forEach(d=>{
         const times=cmpSkaters.map(s=>{
             const rec=(s.pr?.records||[]).find(r=>r.distance===d);
-            return rec?pt(rec.time):null;
+            return rec?pt(rec.time||rec.record):null;
         });
         const validTimes=times.filter(t=>t!==null);
         const best=validTimes.length?Math.min(...validTimes):null;
@@ -870,7 +883,7 @@ function renderComparison(){
             const results=s.data[d]||[];
             if(results.length<2)return null;
             const first=pt(results[results.length-1].time);
-            const best=Math.min(...results.map(r=>pt(r.time)));
+            const best=Math.min(...results.map(r=>pt(r.time||r.record)));
             return((first-best)/first*100);
         });
         const validRates=rates.filter(r=>r!==null);
@@ -903,7 +916,7 @@ function renderComparison(){
     [500,1000,1500].forEach(dist=>{
         cmpSkaters.forEach((s,i)=>{
             const results=(s.data[dist]||[]).slice().reverse();
-            const map={};results.forEach(r=>map[r.date]=pt(r.time));
+            const map={};results.forEach(r=>map[r.date]=pt(r.time||r.record));
             const baseColor=CMP_COLORS[i];
             datasets.push({
                 label:`${s.name} ${DNAME[dist]}`,
