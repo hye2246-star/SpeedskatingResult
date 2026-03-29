@@ -33,16 +33,17 @@ body { font-family: 'Malgun Gothic','Apple SD Gothic Neo',sans-serif; background
 .section h2 { font-size: 1.5em; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
 .section h2 span { color: var(--blue); }
 
-.pr-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.pr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
 .pr-card { background: var(--card); border-radius: 16px; padding: 28px 20px; text-align: center; border: 1px solid var(--border); transition: all 0.3s; position: relative; overflow: hidden; }
 .pr-card:hover { transform: translateY(-4px); box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
 .pr-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
 .pr-card.c500::after { background: var(--red); } .pr-card.c1000::after { background: var(--blue); }
-.pr-card.c1500::after { background: var(--green); } .pr-card.c3000::after { background: var(--yellow); }
+.pr-card.c1500::after { background: var(--green); } .pr-card.c2000::after { background: var(--cyan); }
+.pr-card.c3000::after { background: var(--yellow); }
 .pr-card .dist { font-size: 0.95em; color: var(--muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
 .pr-card .time { font-size: 2.2em; font-weight: 800; }
 .pr-card.c500 .time { color: var(--red); } .pr-card.c1000 .time { color: var(--blue); }
-.pr-card.c1500 .time { color: var(--green); } .pr-card.c3000 .time { color: var(--yellow); }
+.pr-card.c1500 .time { color: var(--green); } .pr-card.c2000 .time { color: var(--cyan); } .pr-card.c3000 .time { color: var(--yellow); }
 .pr-card .date { font-size: 0.8em; color: var(--dim); margin-top: 8px; }
 .pr-card .improve { font-size: 0.85em; color: var(--green); margin-top: 4px; }
 
@@ -293,9 +294,9 @@ tr:hover { background: rgba(51,65,85,0.3); }
 <script>
 const SKATER='202308014128';
 const API='https://speedskatingresults.com/api/json';
-const DISTS=[500,1000,1500,3000];
-const DCOL={500:'#ef4444',1000:'#3b82f6',1500:'#22c55e',3000:'#f59e0b'};
-const DNAME={500:'500m',1000:'1000m',1500:'1500m',3000:'3000m'};
+const DISTS=[500,1000,1500,2000,3000];
+const DCOL={500:'#ef4444',1000:'#3b82f6',1500:'#22c55e',2000:'#06b6d4',3000:'#f59e0b'};
+const DNAME={500:'500m',1000:'1000m',1500:'1500m',2000:'2000m',3000:'3000m'};
 
 function pt(t){
     if(!t)return null;
