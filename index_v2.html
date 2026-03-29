@@ -404,9 +404,10 @@ function switchMainSkater(){
     document.getElementById('recordTable').innerHTML='';
     document.getElementById('predictGrid').innerHTML='';
     document.getElementById('cmpOutput').innerHTML='';
-    const d=ALL_SKATER_DATA[id];
-    SD.pr=d.pr;
-    DISTS.forEach(dist=>{SD[dist]=d.results?.[dist]||[]});
+    const skd=ALL_SKATER_DATA[id];
+    SD.pr=skd.pr;
+    // 키가 문자열(500 vs "500")일 수 있으므로 둘 다 체크
+    DISTS.forEach(dist=>{SD[dist]=skd.results?.[dist]||skd.results?.[String(dist)]||[]});
 
     // URL 업데이트
     const url=new URL(window.location);
@@ -431,7 +432,11 @@ function switchMainSkater(){
     renderSlots();
     document.getElementById('cmpOutput').innerHTML='';
 
-    render();
+    // 차트 초기화 후 렌더
+    curDist=500;
+    if(gChart){gChart.destroy();gChart=null}
+    if(pChart){pChart.destroy();pChart=null}
+    setTimeout(()=>render(),50);
 }
 
 async function init(){
@@ -452,7 +457,7 @@ async function init(){
     const skData=ALL_SKATER_DATA[currentSkater];
     if(skData){
         SD.pr=skData.pr;
-        DISTS.forEach(d=>{SD[d]=skData.results?.[d]||[]});
+        DISTS.forEach(d=>{SD[d]=skData.results?.[d]||skData.results?.[String(d)]||[]});
     } else {
         SD.pr=EMBEDDED_DATA.pr;
         DISTS.forEach(d=>{SD[d]=EMBEDDED_DATA[d]||[]});
@@ -796,7 +801,7 @@ async function addSkater(id,name){
     const local=ALL_SKATER_DATA[id];
     if(local){
         const skater={id,name,pr:local.pr,data:{}};
-        DISTS.forEach(d=>{skater.data[d]=local.results?.[d]||[]});
+        DISTS.forEach(d=>{skater.data[d]=local.results?.[d]||local.results?.[String(d)]||[]});
         cmpSkaters.push(skater);
         renderSlots();
         renderComparison();
