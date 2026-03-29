@@ -223,27 +223,9 @@ tr:hover { background: rgba(51,65,85,0.3); }
         <div id="calGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px"></div>
     </div>
 
-    <div class="section juwon-only" id="latest">
-        <h2>최근 대회 <span>2026.03.28</span></h2>
-        <div style="background:linear-gradient(135deg,var(--card),rgba(51,65,85,0.3));border-radius:16px;padding:24px;margin-bottom:20px;border-left:4px solid var(--blue)">
-            <h3 style="font-size:1.2em;margin-bottom:6px">2026 전국남녀 초/중/고/대/실업 스피드스케이팅대회</h3>
-            <div style="color:var(--dim);font-size:0.9em">2026-03-28 | 서울 | 소속: 강명중</div>
-        </div>
-        <div class="event-grid">
-            <div class="evt bronze"><div class="event-name">매스스타트</div><div class="rank">3위</div><div class="rank-detail">중/고등 여자 전체</div><div class="note">8바퀴 체력비축 → 막판 스퍼트</div></div>
-            <div class="evt gold"><div class="event-name">500m</div><div class="rank">1위</div><div class="rank-detail">1학년 중 (전체 8위)</div></div>
-            <div class="evt gold"><div class="event-name">1000m</div><div class="rank">1위</div><div class="rank-detail">중1 중 (기록 1:29.25)</div><div class="note">상위 전원 2~3학년</div></div>
-        </div>
-        <h3 style="margin:24px 0 12px;color:var(--muted)">1000m 상세 결과</h3>
-        <table>
-            <tr><th>순위</th><th>선수</th><th>기록</th><th>비고</th></tr>
-            <tr><td>1</td><td>김하엘</td><td>1:25.18</td><td></td></tr>
-            <tr><td>2</td><td>안경인</td><td>1:25.56</td><td>2학년</td></tr>
-            <tr><td>3</td><td class="rival">차윤지</td><td>1:25.98</td><td>같은팀</td></tr>
-            <tr><td>4</td><td>최운서</td><td>1:26.47</td><td>3학년</td></tr>
-            <tr><td>5</td><td>한마음</td><td>1:26.58</td><td>3학년</td></tr>
-            <tr><td>-</td><td class="hl">조주원</td><td class="hl">1:29.25</td><td class="hl">중1 1위!</td></tr>
-        </table>
+    <div class="section" id="latest">
+        <h2>최근 대회 기록</h2>
+        <div id="latestContent"></div>
     </div>
 
     <div class="section juwon-only" id="analysis">
@@ -506,7 +488,7 @@ async function init(){
 }
 
 function render(){
-    renderPR();renderTabs();renderGrowth(curDist);renderPredict();renderGrowthRatesSolo();
+    renderPR();renderTabs();renderGrowth(curDist);renderPredict();renderGrowthRatesSolo();renderLatest();
     const now=new Date().toLocaleString('ko-KR');
     document.getElementById('lastUpdate').textContent='업데이트: '+now;
     document.getElementById('footerUpdate').textContent='마지막 업데이트: '+now;
@@ -695,6 +677,61 @@ function renderCal(){
         </div>`;
     }).join('')||'<div style="color:var(--muted);text-align:center;padding:40px">해당 대회가 없습니다</div>';
 }
+function renderLatest(){
+    const skd=ALL_SKATER_DATA[currentSkater];
+    if(!skd)return;
+    const allRecs=Object.values(skd.results||{}).flat();
+    if(!allRecs.length){document.getElementById('latestContent').innerHTML='<div style="color:var(--muted);text-align:center;padding:40px">대회 기록이 없습니다</div>';return}
+
+    // Group by tournament (using date proximity - same tournament = same date range)
+    const byTournament={};
+    allRecs.forEach(r=>{
+        const key=r.tournament||r.date;
+        if(!byTournament[key])byTournament[key]=[];
+        byTournament[key].push(r);
+    });
+
+    // Sort tournaments by most recent date
+    const sorted=Object.entries(byTournament).sort((a,b)=>{
+        const da=Math.max(...a[1].map(r=>new Date(r.date.replace(/\./g,'-')).getTime()));
+        const db=Math.max(...b[1].map(r=>new Date(r.date.replace(/\./g,'-')).getTime()));
+        return db-da;
+    });
+
+    // Show latest 3 tournaments
+    const latest=sorted.slice(0,3);
+    let html='';
+
+    latest.forEach(([tourney,recs])=>{
+        const dates=[...new Set(recs.map(r=>r.date))].sort();
+        const dateRange=dates.length>1?dates[0]+'~'+dates[dates.length-1]:dates[0];
+
+        html+=`<div style="background:linear-gradient(135deg,var(--card),rgba(51,65,85,0.3));border-radius:16px;padding:24px;margin-bottom:20px;border-left:4px solid var(--blue)">
+            <h3 style="font-size:1.1em;margin-bottom:6px">${tourney}</h3>
+            <div style="color:var(--dim);font-size:0.9em">${dateRange} | ${recs[0]?.team||''}</div>
+        </div>`;
+
+        // Event cards
+        html+='<div class="event-grid" style="margin-bottom:24px">';
+        recs.forEach(r=>{
+            const rank=parseInt(r.rank);
+            let cls='evt';
+            if(rank===1)cls+=' gold';
+            else if(rank===2)cls+=' gold';
+            else if(rank===3)cls+=' bronze';
+            html+=`<div class="${cls}">
+                <div class="event-name">${r.event||r.category||''}</div>
+                <div class="rank">${r.rank}위</div>
+                <div class="rank-detail">${r.category||''}</div>
+                <div class="note">${r.record||''}</div>
+            </div>`;
+        });
+        html+='</div>';
+    });
+
+    document.getElementById('latestContent').innerHTML=html;
+}
+
 renderCal();
 
 // ===== SKATER LIST (result.sports.or.kr 데이터) =====
