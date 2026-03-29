@@ -202,7 +202,8 @@ tr:hover { background: rgba(51,65,85,0.3); }
 
     <div class="section" id="predict">
         <h2>성장 예측 <span>(추세 분석)</span></h2>
-        <div class="chart-wrap"><h3>향후 기록 예측 (선형 회귀)</h3><canvas id="predictChart"></canvas></div>
+        <div class="tabs" id="predictTabs"></div>
+        <div class="chart-wrap"><h3 id="predictTitle">향후 기록 예측 (선형 회귀)</h3><canvas id="predictChart"></canvas></div>
         <div class="predict-grid" id="predictGrid"></div>
     </div>
 
@@ -585,16 +586,36 @@ function renderPredict(){
         `<div class="predict-card"><div class="target">${p.dist} 목표: ${p.target}</div><div class="est">${p.date}</div><div class="when">예상 도달 시점</div></div>`
     ).join(''):'<div style="color:var(--muted);grid-column:1/-1;text-align:center">데이터 축적 중...</div>';
 
-    if(pChart)pChart.destroy();if(!series.length)return;
-    const ds=[];
-    series.forEach(s=>{const c=DCOL[s.dist];
-        ds.push({label:`${DNAME[s.dist]} 실제`,data:s.actual.concat(Array(s.labels.length-s.actual.length).fill(null)),borderColor:c,borderWidth:3,pointRadius:5,fill:false});
-        ds.push({label:`${DNAME[s.dist]} 예측`,data:s.predicted,borderColor:c+'80',borderDash:[8,4],borderWidth:2,pointRadius:0,fill:false})
-    });
-    const maxL=Math.max(...series.map(s=>s.labels.length));
-    pChart=new Chart(document.getElementById('predictChart'),{type:'line',data:{labels:series.find(s=>s.labels.length===maxL).labels,datasets:ds},
-    options:{responsive:true,plugins:{tooltip:{callbacks:{label:c=>c.dataset.label+': '+(c.parsed.y?ft(c.parsed.y):'-')}},legend:{labels:{color:'#94a3b8',font:{size:11}}}},
-    scales:{y:{reverse:true,ticks:{color:'#94a3b8',callback:v=>ft(v)},grid:{color:'rgba(51,65,85,0.2)'}},x:{ticks:{color:'#94a3b8',maxRotation:45,maxTicksLimit:12},grid:{color:'rgba(51,65,85,0.2)'}}}}})
+    // 종목별 탭으로 예측 차트 표시
+    window._predictSeries=series;
+    const predDists=series.map(s=>s.dist);
+    document.getElementById('predictTabs').innerHTML=predDists.map((d,i)=>
+        `<div class="tab ${i===0?'active':''}" onclick="window._switchPredDist(${d})">${DNAME[d]}</div>`
+    ).join('');
+
+    window._switchPredDist=function(dist){
+        document.querySelectorAll('#predictTabs .tab').forEach(t=>t.classList.remove('active'));
+        event?.target?.classList.add('active');
+        const s=window._predictSeries.find(x=>x.dist===dist);
+        if(!s)return;
+        if(pChart)pChart.destroy();
+        const c=DCOL[dist];
+        const allVals=s.actual.filter(v=>v);
+        const minV=Math.min(...allVals);
+        const maxV=Math.max(...allVals);
+        const pad=(maxV-minV)*0.2||2;
+        document.getElementById('predictTitle').textContent=DNAME[dist]+' 향후 기록 예측';
+        pChart=new Chart(document.getElementById('predictChart'),{type:'line',
+            data:{labels:s.labels,datasets:[
+                {label:'실제 기록',data:s.actual.concat(Array(s.labels.length-s.actual.length).fill(null)),borderColor:c,borderWidth:3,pointRadius:5,fill:false},
+                {label:'예측 추세',data:s.predicted,borderColor:c+'60',borderDash:[8,4],borderWidth:2,pointRadius:0,fill:false}
+            ]},
+            options:{responsive:true,
+                plugins:{tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+(ctx.parsed.y?ft(ctx.parsed.y):'-')}},legend:{labels:{color:'#94a3b8'}}},
+                scales:{y:{reverse:true,min:minV-pad,max:maxV+pad,ticks:{color:'#94a3b8',callback:v=>ft(v)},grid:{color:'rgba(51,65,85,0.3)'},title:{display:true,text:'기록',color:'#94a3b8'}},
+                    x:{ticks:{color:'#94a3b8',maxRotation:45,maxTicksLimit:12},grid:{color:'rgba(51,65,85,0.2)'}}}}});
+    };
+    if(predDists.length)window._switchPredDist(predDists[0]);
 }
 
 function renderGrowthRatesSolo(){
@@ -1048,36 +1069,65 @@ function renderComparison(){
         <tr><th style="text-align:left">항목</th>${headers}</tr>
         ${rows}
     </table>
-    <div class="chart-wrap" style="margin-top:20px"><h3>기록 비교 차트 (범례 클릭으로 토글)</h3><canvas id="cmpChart"></canvas></div>`;
+    <div style="margin-top:20px">
+        <div class="tabs" id="cmpDistTabs"></div>
+        <div class="chart-wrap"><canvas id="cmpChart"></canvas></div>
+    </div>`;
 
-    // Chart
-    const allDates=new Set();
-    cmpSkaters.forEach(s=>{[500,1000,1500].forEach(d=>{(s.data[d]||[]).forEach(r=>allDates.add(r.date))})});
-    const labels=[...allDates].sort();
+    // 종목별 탭
+    let cmpCurDist=500;
+    const availDists=DISTS.filter(d=>cmpSkaters.some(s=>(s.data[d]||[]).length>0));
 
-    const datasets=[];
-    [500,1000,1500].forEach(dist=>{
+    function renderCmpChart(dist){
+        cmpCurDist=dist;
+        document.getElementById('cmpDistTabs').innerHTML=availDists.map(d=>
+            `<div class="tab ${d===dist?'active':''}" onclick="window._switchCmpDist(${d})">${DNAME[d]}</div>`
+        ).join('');
+
+        const allDates=new Set();
+        cmpSkaters.forEach(s=>{(s.data[dist]||[]).forEach(r=>allDates.add(r.date))});
+        const labels=[...allDates].sort();
+
+        const datasets=[];
         cmpSkaters.forEach((s,i)=>{
             const results=(s.data[dist]||[]).slice().reverse();
             const map={};results.forEach(r=>map[r.date]=pt(r.time||r.record));
-            const baseColor=CMP_COLORS[i];
             datasets.push({
-                label:`${s.name} ${DNAME[dist]}`,
+                label:s.name,
                 data:labels.map(l=>map[l]||null),
-                borderColor:baseColor,
-                borderWidth:i===0?3:2,
-                borderDash:i===0?[]:[6,3],
-                pointRadius:i===0?4:3,
+                borderColor:CMP_COLORS[i],
+                borderWidth:3,
+                pointRadius:5,
+                pointHoverRadius:8,
                 fill:false,
                 spanGaps:true,
-                hidden:dist!==500
+                tension:0.3
             });
         });
-    });
 
-    new Chart(document.getElementById('cmpChart'),{type:'line',data:{labels,datasets},
-    options:{responsive:true,plugins:{tooltip:{callbacks:{label:c=>c.dataset.label+': '+(c.parsed.y?ft(c.parsed.y):'-')}},legend:{labels:{color:'#94a3b8',font:{size:11}}}},
-    scales:{y:{reverse:true,ticks:{color:'#94a3b8',callback:v=>ft(v)},grid:{color:'rgba(51,65,85,0.2)'}},x:{ticks:{color:'#94a3b8',maxRotation:45,maxTicksLimit:10},grid:{color:'rgba(51,65,85,0.2)'}}}}});
+        // Y축 범위를 데이터에 맞게 자동 조정 (여유 5%)
+        const allVals=datasets.flatMap(d=>d.data).filter(v=>v!==null);
+        const minV=Math.min(...allVals);
+        const maxV=Math.max(...allVals);
+        const padding=(maxV-minV)*0.15||2;
+
+        const canvas=document.getElementById('cmpChart');
+        if(window._cmpChartObj){window._cmpChartObj.destroy()}
+        window._cmpChartObj=new Chart(canvas,{type:'line',data:{labels,datasets},
+        options:{responsive:true,
+            plugins:{tooltip:{callbacks:{label:c=>c.dataset.label+': '+(c.parsed.y?ft(c.parsed.y):'-')}},
+                legend:{labels:{color:'#94a3b8',font:{size:12}}}},
+            scales:{
+                y:{reverse:true,min:minV-padding,max:maxV+padding,
+                    ticks:{color:'#94a3b8',callback:v=>ft(v),stepSize:padding>10?5:1},
+                    grid:{color:'rgba(51,65,85,0.3)'},
+                    title:{display:true,text:DNAME[dist]+' 기록',color:'#94a3b8'}},
+                x:{ticks:{color:'#94a3b8',maxRotation:45,maxTicksLimit:10},grid:{color:'rgba(51,65,85,0.2)'}}
+            }}});
+    }
+
+    window._switchCmpDist=function(d){renderCmpChart(d)};
+    if(availDists.length)renderCmpChart(availDists[0]);
 }
 
 renderSlots();
