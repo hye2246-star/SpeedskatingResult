@@ -176,12 +176,14 @@ tr:hover { background: rgba(51,65,85,0.3); }
 </nav>
 
 <div class="header">
-    <h1>조주원 스피드스케이팅 대시보드</h1>
-    <div class="subtitle">강명중학교 1학년 | speedskatingresults.com</div>
-    <div class="badges">
-        <span class="badge live">데이터 로드 완료</span>
+    <h1 id="headerTitle">스피드스케이팅 대시보드</h1>
+    <div class="subtitle" id="headerSub">speedskatingresults.com 데이터 기반</div>
+    <div style="margin-top:16px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;align-items:center">
+        <select id="mainSkaterSelect" onchange="switchMainSkater()" style="padding:10px 16px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:1em;min-width:200px">
+        </select>
         <span class="badge" id="lastUpdate">업데이트: 2026-03-28</span>
     </div>
+    <div class="badges" id="headerBadges" style="margin-top:12px"></div>
 </div>
 
 <div class="container">
@@ -354,19 +356,118 @@ const EMBEDDED_DATA={
     ]
 };
 
+let currentSkater=SKATER;
+
+function populateMainSelect(){
+    const sel=document.getElementById('mainSkaterSelect');
+    sel.innerHTML='';
+    // 선수 리스트에서 데이터 있는 선수만
+    const withData=SKATER_LIST.filter(s=>{
+        const d=ALL_SKATER_DATA[s.id];
+        return d && (d.pr?.records?.length>0 || Object.values(d.results||{}).some(r=>r.length>0));
+    });
+    const noData=SKATER_LIST.filter(s=>!withData.find(w=>w.id===s.id) && s.id>0);
+
+    const g1=document.createElement('optgroup');
+    g1.label='데이터 있는 선수';
+    withData.forEach(s=>{
+        const opt=document.createElement('option');
+        opt.value=s.id;
+        opt.textContent=s.name;
+        if(s.id===currentSkater)opt.selected=true;
+        g1.appendChild(opt);
+    });
+    sel.appendChild(g1);
+
+    if(noData.length){
+        const g2=document.createElement('optgroup');
+        g2.label='데이터 수집 중';
+        noData.forEach(s=>{
+            const opt=document.createElement('option');
+            opt.value=s.id;
+            opt.textContent=s.name+' (준비중)';
+            opt.disabled=true;
+            g2.appendChild(opt);
+        });
+        sel.appendChild(g2);
+    }
+}
+
+function switchMainSkater(){
+    const sel=document.getElementById('mainSkaterSelect');
+    const id=parseInt(sel.value);
+    if(!id||!ALL_SKATER_DATA[id])return;
+    currentSkater=id;
+    const d=ALL_SKATER_DATA[id];
+    SD.pr=d.pr;
+    DISTS.forEach(dist=>{SD[dist]=d.results?.[dist]||[]});
+
+    // URL 업데이트
+    const url=new URL(window.location);
+    url.searchParams.set('skater',id);
+    window.history.replaceState({},'',url);
+
+    // 헤더 업데이트
+    const info=SKATER_LIST.find(s=>s.id===id);
+    const name=info?info.name.split('(')[0].trim():'선수';
+    document.getElementById('headerTitle').textContent=name+' 스피드스케이팅 대시보드';
+    document.getElementById('headerSub').textContent=(info?.grade||'')+' | speedskatingresults.com';
+
+    // PR 뱃지
+    const prs=SD.pr?.records||[];
+    document.getElementById('headerBadges').innerHTML=prs.map(r=>{
+        const s=pt(r.time);
+        return`<span class="badge">${DNAME[r.distance]} PR ${ft(s)}</span>`;
+    }).join('');
+
+    // 비교기 초기화
+    cmpSkaters=[{id,name:info?.name||name,pr:null,data:{}}];
+    renderSlots();
+    document.getElementById('cmpOutput').innerHTML='';
+
+    render();
+}
+
 async function init(){
     // 로컬 JSON 로드
     await loadSkaterDB();
 
-    // 주원이 데이터: 로컬 JSON > 내장 데이터
-    const jwData=ALL_SKATER_DATA[SKATER];
-    if(jwData){
-        SD.pr=jwData.pr;
-        DISTS.forEach(d=>{SD[d]=jwData.results?.[d]||[]});
+    // URL에서 선수 ID 확인
+    const params=new URLSearchParams(window.location.search);
+    const urlSkater=parseInt(params.get('skater'));
+    if(urlSkater && ALL_SKATER_DATA[urlSkater]){
+        currentSkater=urlSkater;
+    }
+
+    // 메인 셀렉트 채우기
+    populateMainSelect();
+
+    // 선수 데이터 로드
+    const skData=ALL_SKATER_DATA[currentSkater];
+    if(skData){
+        SD.pr=skData.pr;
+        DISTS.forEach(d=>{SD[d]=skData.results?.[d]||[]});
     } else {
         SD.pr=EMBEDDED_DATA.pr;
         DISTS.forEach(d=>{SD[d]=EMBEDDED_DATA[d]||[]});
     }
+
+    // 헤더 업데이트
+    const info=SKATER_LIST.find(s=>s.id===currentSkater);
+    const name=info?info.name.split('(')[0].trim():'조주원';
+    document.getElementById('headerTitle').textContent=name+' 스피드스케이팅 대시보드';
+    document.getElementById('headerSub').textContent=(info?.grade||'')+' | speedskatingresults.com';
+
+    const prs=SD.pr?.records||[];
+    document.getElementById('headerBadges').innerHTML=prs.map(r=>{
+        const s=pt(r.time);
+        return`<span class="badge">${DNAME[r.distance]} PR ${ft(s)}</span>`;
+    }).join('');
+
+    // 비교기 초기 선수 설정
+    cmpSkaters=[{id:currentSkater,name:info?.name||name,pr:null,data:{}}];
+
+    document.getElementById('mainSkaterSelect').value=currentSkater;
     render();
 }
 
@@ -629,7 +730,7 @@ populateSelect();
 
 // ===== COMPARATOR (max 5) =====
 const CMP_COLORS=['#ef4444','#a855f7','#06b6d4','#f59e0b','#ec4899'];
-let cmpSkaters=[{id:SKATER,name:'조주원',pr:null,data:{}}]; // slot 0 = juwon
+let cmpSkaters=[{id:SKATER,name:'조주원',pr:null,data:{}}]; // slot 0 = current skater
 
 function renderSlots(){
     const el=document.getElementById('cmpSlots');
