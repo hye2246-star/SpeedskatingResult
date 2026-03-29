@@ -267,6 +267,18 @@ tr:hover { background: rgba(51,65,85,0.3); }
         <div id="cmpOutput"></div>
     </div>
 
+    <!-- AI 분석 -->
+    <div class="section" id="ai-analysis">
+        <h2>AI 분석 <span>(선수 기록 기반)</span></h2>
+        <p style="color:var(--muted);margin-bottom:16px">선택된 선수의 기록 데이터를 AI에게 분석 요청합니다. 버튼을 누르면 프롬프트가 클립보드에 복사되고 AI 사이트가 열립니다.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <button onclick="aiAnalysis('claude')" style="padding:14px 28px;border-radius:12px;border:none;background:#d97706;color:#fff;font-size:1em;cursor:pointer;font-weight:700;display:flex;align-items:center;gap:8px">Claude로 분석</button>
+            <button onclick="aiAnalysis('chatgpt')" style="padding:14px 28px;border-radius:12px;border:none;background:#10a37f;color:#fff;font-size:1em;cursor:pointer;font-weight:700;display:flex;align-items:center;gap:8px">ChatGPT로 분석</button>
+            <button onclick="aiAnalysis('gemini')" style="padding:14px 28px;border-radius:12px;border:none;background:#4285f4;color:#fff;font-size:1em;cursor:pointer;font-weight:700;display:flex;align-items:center;gap:8px">Gemini로 분석</button>
+        </div>
+        <div id="aiPromptPreview" style="margin-top:16px"></div>
+    </div>
+
     <div class="footer">
         데이터: <a href="https://speedskatingresults.com/index.php?p=17&s=106570" target="_blank">speedskatingresults.com</a> API + 대회 현장 기록<br>
         <span id="footerUpdate"></span>
@@ -809,6 +821,84 @@ function addFromList(){
 }
 
 populateSelect();
+
+// ===== AI ANALYSIS =====
+function buildPrompt(){
+    const skd=ALL_SKATER_DATA[currentSkater];
+    if(!skd)return '';
+    const info=SKATER_LIST.find(s=>s.id===currentSkater);
+    const name=skd.name||info?.name||'선수';
+    const team=skd.team||info?.team||'';
+    const grade=info?.grade||'';
+
+    let prompt=`다음은 스피드스케이팅 선수 "${name}"의 경기 기록 데이터입니다. 이 선수를 분석해주세요.\n\n`;
+    prompt+=`선수: ${name}\n소속: ${team}\n학년: ${grade}\n\n`;
+    prompt+=`## 개인 최고 기록 (PR)\n`;
+    (skd.pr||[]).forEach(p=>{prompt+=`- ${DNAME[p.distance]||p.distance+'m'}: ${p.time} (${p.date})\n`});
+    prompt+=`\n## 종목별 전체 기록 (최신순)\n`;
+    Object.entries(skd.results||{}).forEach(([dist,recs])=>{
+        if(!recs.length)return;
+        prompt+=`\n### ${DNAME[dist]||dist}\n`;
+        recs.forEach(r=>{prompt+=`- ${r.date} | ${r.record} | ${r.rank}위 | ${r.tournament||r.category||''}\n`});
+    });
+    prompt+=`\n## 분석 요청\n1. 강점과 약점 분석\n2. 종목별 성장 추세 평가\n3. 집중 추천 종목\n4. 향후 기록 향상 가능성 예측\n5. 훈련 방향 제안\n\n한국어로 답변해주세요.`;
+    return prompt;
+}
+
+async function aiAnalysis(service){
+    const prompt=buildPrompt();
+    if(!prompt){alert('선수를 먼저 선택해주세요');return}
+    const preview=document.getElementById('aiPromptPreview');
+
+    const apiKey=localStorage.getItem('ai_api_key_'+service);
+    if(apiKey){
+        preview.innerHTML=`<div class="loading"><div class="spinner"></div><br>${service.toUpperCase()} 분석 중...</div>`;
+        try{
+            let result='';
+            if(service==='claude'){
+                const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
+                const d=await r.json();
+                result=d.content?.[0]?.text||d.error?.message||'오류';
+            }else if(service==='chatgpt'){
+                const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},body:JSON.stringify({model:'gpt-4o-mini',messages:[{role:'user',content:prompt}]})});
+                const d=await r.json();
+                result=d.choices?.[0]?.message?.content||d.error?.message||'오류';
+            }else if(service==='gemini'){
+                const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+apiKey,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
+                const d=await r.json();
+                result=d.candidates?.[0]?.content?.parts?.[0]?.text||d.error?.message||'오류';
+            }
+            preview.innerHTML=`<div class="analysis" style="margin-top:16px"><h3>${service.toUpperCase()} 분석 결과</h3><div style="white-space:pre-wrap;line-height:1.8;margin-top:12px">${result.replace(/\n/g,'<br>')}</div></div>`;
+        }catch(e){
+            preview.innerHTML=`<div style="color:var(--red);padding:20px">API 오류: ${e.message}. API 키를 확인해주세요.</div>`;
+        }
+        return;
+    }
+
+    // API 키 없으면 입력 요청
+    preview.innerHTML=`<div style="background:var(--card);border-radius:12px;padding:20px;border:1px solid var(--border);margin-top:12px">
+        <div style="color:var(--muted);margin-bottom:12px">${service.toUpperCase()} API 키를 입력해주세요 (브라우저에 저장됩니다)</div>
+        <div style="display:flex;gap:8px">
+            <input type="password" id="apiKeyInput" placeholder="API Key" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text)">
+            <button onclick="saveApiKey('${service}')" style="padding:10px 20px;border-radius:8px;border:none;background:var(--blue);color:#fff;cursor:pointer">저장 후 분석</button>
+        </div>
+        <div style="color:var(--dim);font-size:0.8em;margin-top:8px">또는 <a href="#" onclick="copyPrompt();return false" style="color:var(--blue)">프롬프트만 복사</a>해서 직접 AI 사이트에 붙여넣기</div>
+    </div>`;
+}
+
+function saveApiKey(service){
+    const key=document.getElementById('apiKeyInput').value.trim();
+    if(!key)return;
+    localStorage.setItem('ai_api_key_'+service,key);
+    aiAnalysis(service);
+}
+
+function copyPrompt(){
+    const prompt=buildPrompt();
+    navigator.clipboard.writeText(prompt).then(()=>{
+        document.getElementById('aiPromptPreview').innerHTML=`<div style="color:var(--green);padding:16px">프롬프트가 클립보드에 복사되었습니다! AI 사이트에 붙여넣기 하세요.</div>`;
+    });
+}
 
 // ===== COMPARATOR (max 5) =====
 const CMP_COLORS=['#ef4444','#a855f7','#06b6d4','#f59e0b','#ec4899'];
