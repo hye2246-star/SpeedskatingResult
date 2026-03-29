@@ -635,14 +635,18 @@ function renderPredict(){
 }
 
 function renderGrowthRatesSolo(){
-    document.getElementById('growthRates').innerHTML=[500,1000,1500].map(d=>{
-        const jw=SD[d]||[];if(!jw.length)return'';
-        const jwF=pt(jw[jw.length-1].time),jwB=Math.min(...jw.map(r=>pt(r.time||r.record)));
+    document.getElementById('growthRates').innerHTML=DISTS.filter(d=>d!==2000).map(d=>{
+        const jw=SD[d]||[];if(jw.length<2)return'';
+        const vals=jw.map(r=>pt(r.time||r.record)).filter(v=>v&&isFinite(v));
+        if(vals.length<2)return'';
+        const jwF=vals[vals.length-1],jwB=Math.min(...vals);
+        if(!jwF||!isFinite(jwF)||jwF===0)return'';
         const jwP=((jwF-jwB)/jwF*100).toFixed(1);
+        if(!isFinite(parseFloat(jwP)))return'';
         return`<div class="growth-item"><h4 style="color:${DCOL[d]}">${DNAME[d]}</h4>
-        <div class="gbar"><div class="gbar-label"><span>성장률</span><span style="color:var(--green)">${jwP}%</span></div><div class="gbar-track"><div class="gbar-fill" style="width:${jwP}%;background:linear-gradient(90deg,${DCOL[d]},${DCOL[d]}cc)">${jwP}%</div></div></div>
+        <div class="gbar"><div class="gbar-label"><span>성장률</span><span style="color:var(--green)">${jwP}%</span></div><div class="gbar-track"><div class="gbar-fill" style="width:${Math.min(jwP,100)}%;background:linear-gradient(90deg,${DCOL[d]},${DCOL[d]}cc)">${jwP}%</div></div></div>
         <div style="color:var(--dim);font-size:0.8em;margin-top:4px">${ft(jwF)} → ${ft(jwB)}</div></div>`
-    }).join('');
+    }).join('')||'<div style="color:var(--muted);text-align:center">데이터 부족</div>';
 }
 
 document.querySelectorAll('.nav a').forEach(a=>a.addEventListener('click',()=>{document.querySelectorAll('.nav a').forEach(x=>x.classList.remove('active'));a.classList.add('active')}));
