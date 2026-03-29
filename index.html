@@ -499,6 +499,7 @@ async function init(){
         el.style.display=(currentSkater===SKATER)?'':'none';
     });
 
+    renderCal();
     render();
 }
 
@@ -789,7 +790,7 @@ function searchSportsKR(page,keyword){
     document.body.removeChild(form);
 }
 
-renderCal();
+// renderCal is called from init()
 
 // ===== SKATER LIST (result.sports.or.kr 데이터) =====
 const SKATER_LIST=[
