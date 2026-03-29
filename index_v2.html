@@ -399,7 +399,7 @@ function populateMainSelect(){
 
 function switchMainSkater(){
     const sel=document.getElementById('mainSkaterSelect');
-    const id=parseInt(sel.value);
+    const id=sel.value;
     if(!id||!ALL_SKATER_DATA[id])return;
     currentSkater=id;
 
@@ -419,19 +419,20 @@ function switchMainSkater(){
 
     // 헤더 업데이트
     const info=SKATER_LIST.find(s=>s.id===id);
-    const name=info?info.name.split('(')[0].trim():'선수';
-    document.getElementById('headerTitle').textContent=name+' 스피드스케이팅 대시보드';
-    document.getElementById('headerSub').textContent=(info?.grade||'')+' | speedskatingresults.com';
+    const skName=info?.name||ALL_SKATER_DATA[id]?.name||'선수';
+    const skTeam=info?.team||ALL_SKATER_DATA[id]?.team||'';
+    document.getElementById('headerTitle').textContent=skName+' 스피드스케이팅 대시보드';
+    document.getElementById('headerSub').textContent=(info?.grade||'')+' | '+skTeam;
 
     // PR 뱃지
     const prs=SD.pr?.records||[];
     document.getElementById('headerBadges').innerHTML=prs.map(r=>{
         const s=pt(r.time||r.record);
-        return`<span class="badge">${DNAME[r.distance]} PR ${ft(s)}</span>`;
+        return`<span class="badge">${DNAME[r.distance]} PR ${s?ft(s):(r.time||r.record)}</span>`;
     }).join('');
 
     // 비교기 초기화
-    cmpSkaters=[{id,name:info?.name||name,pr:null,data:{}}];
+    cmpSkaters=[{id,name:skName,pr:null,data:{}}];
     renderSlots();
     document.getElementById('cmpOutput').innerHTML='';
 
@@ -456,7 +457,7 @@ async function init(){
 
     // URL에서 선수 ID 확인
     const params=new URLSearchParams(window.location.search);
-    const urlSkater=parseInt(params.get('skater'));
+    const urlSkater=params.get('skater');
     if(urlSkater && ALL_SKATER_DATA[urlSkater]){
         currentSkater=urlSkater;
     }
@@ -476,18 +477,19 @@ async function init(){
 
     // 헤더 업데이트
     const info=SKATER_LIST.find(s=>s.id===currentSkater);
-    const name=info?info.name.split('(')[0].trim():'조주원';
-    document.getElementById('headerTitle').textContent=name+' 스피드스케이팅 대시보드';
-    document.getElementById('headerSub').textContent=(info?.grade||'')+' | speedskatingresults.com';
+    const skName=info?.name||ALL_SKATER_DATA[currentSkater]?.name||'조주원';
+    const skTeam=info?.team||ALL_SKATER_DATA[currentSkater]?.team||'';
+    document.getElementById('headerTitle').textContent=skName+' 스피드스케이팅 대시보드';
+    document.getElementById('headerSub').textContent=(info?.grade||'')+' | '+skTeam;
 
     const prs=SD.pr?.records||[];
     document.getElementById('headerBadges').innerHTML=prs.map(r=>{
         const s=pt(r.time||r.record);
-        return`<span class="badge">${DNAME[r.distance]} PR ${ft(s)}</span>`;
+        return`<span class="badge">${DNAME[r.distance]} PR ${s?ft(s):(r.time||r.record)}</span>`;
     }).join('');
 
     // 비교기 초기 선수 설정
-    cmpSkaters=[{id:currentSkater,name:info?.name||name,pr:null,data:{}}];
+    cmpSkaters=[{id:currentSkater,name:skName,pr:null,data:{}}];
 
     document.getElementById('mainSkaterSelect').value=currentSkater;
 
