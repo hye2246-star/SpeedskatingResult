@@ -698,10 +698,10 @@ function renderCal(){
         if(isActive){statusCls='live';statusText='진행중'}
         else if(!isPast){statusCls='soon';statusText='예정'}
 
-        const eName=encodeURIComponent(e.name);
+        const skName=ALL_SKATER_DATA[currentSkater]?.name||SKATER_LIST.find(x=>x.id===currentSkater)?.name||'';
         const links=`<div class="cal-links">
-            <a href="javascript:void(0)" onclick="searchSportsKR('INF201','${eName}')" class="cal-link results">대회 결과</a>
-            <a href="javascript:void(0)" onclick="searchSportsKR('INF308','${eName}')" class="cal-link vod">경기 영상</a>
+            <a href="javascript:void(0)" onclick="searchSportsKR('INF703','${encodeURIComponent(skName)}')" class="cal-link results">내 경기 결과</a>
+            <a href="javascript:void(0)" onclick="searchSportsKR('INF308','${encodeURIComponent(skName)}')" class="cal-link vod">내 경기 영상</a>
         </div>`;
 
         return`<div class="${cls}">
