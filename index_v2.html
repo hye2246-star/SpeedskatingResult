@@ -445,6 +445,9 @@ function switchMainSkater(){
         el.style.display=(id===SKATER)?'':'none';
     });
 
+    // 캘린더 다시 렌더 (출전 표시 업데이트)
+    renderCal();
+
     // 차트 초기화 후 렌더
     curDist=500;
     if(gChart){gChart.destroy();gChart=null}
@@ -612,25 +615,25 @@ document.querySelectorAll('.nav a').forEach(a=>a.addEventListener('click',()=>{d
 
 // ===== CALENDAR =====
 const SCHEDULE=[
-{"name":"2026 전국남녀 종별종합 스피드스케이팅 선수권대회","location":"태릉국제스케이트장","period":"2026.01.03~2026.01.04","status":"대회완료","juwon":true},
+{"name":"2026 전국남녀 종별종합 스피드스케이팅 선수권대회","location":"태릉국제스케이트장","period":"2026.01.03~2026.01.04","status":"대회완료"},
 {"name":"제107회 전국동계체육대회","location":"춘천 송암스포츠타운빙상장","period":"2026.01.15~2026.01.18","status":"대회완료"},
 {"name":"제58회 백곰배 전국초등학교 스피드스케이팅대회","location":"철원빙상경기연맹 경기장","period":"2026.01.24~2026.01.25","status":"대회완료"},
 {"name":"제40회 전국남녀 종별종합 쇼트트랙스피드스케이팅 선수권대회","location":"성남 탄천종합운동장 빙상장","period":"2026.03.20~2026.03.22","status":"대회완료"},
-{"name":"제61회 빙상인추모 전국남녀 스피드스케이팅대회","location":"태릉국제스케이트장","period":"2026.03.21~2026.03.22","status":"대회완료","juwon":true},
-{"name":"제61회 전국남녀 중고등학교 스피드스케이팅대회","location":"태릉국제스케이트장","period":"2026.03.27~2026.03.29","status":"대회중","juwon":true},
+{"name":"제61회 빙상인추모 전국남녀 스피드스케이팅대회","location":"태릉국제스케이트장","period":"2026.03.21~2026.03.22","status":"대회완료"},
+{"name":"제61회 전국남녀 중고등학교 스피드스케이팅대회","location":"태릉국제스케이트장","period":"2026.03.27~2026.03.29","status":"대회중"},
 {"name":"제59회 전국남녀 대학교 스피드스케이팅대회","location":"태릉국제스케이트장","period":"2026.03.27~2026.03.29","status":"대회중"},
 {"name":"제39회 전국남녀 초등학교 스피드스케이팅대회","location":"태릉국제스케이트장","period":"2026.03.27~2026.03.29","status":"대회중"},
 {"name":"2026 한국실업빙상경기연맹 회장배 스피드스케이팅대회","location":"태릉국제스케이트장","period":"2026.03.27~2026.03.29","status":"대회중"},
 // 2025 시즌 (주원이 참가 대회 표시)
-{"name":"2025 전국남녀 종별종합 스피드스케이팅 선수권대회","location":"태릉국제스케이트장","period":"2025.01.02~2025.01.03","status":"대회완료","juwon":true},
+{"name":"2025 전국남녀 종별종합 스피드스케이팅 선수권대회","location":"태릉국제스케이트장","period":"2025.01.02~2025.01.03","status":"대회완료"},
 {"name":"제106회 전국동계체육대회","location":"태릉국제스케이트장","period":"2025.01.15~2025.01.17","status":"대회완료"},
 {"name":"제60회 빙상인추모 전국남녀 스피드스케이팅대회","location":"태릉국제스케이트장","period":"2025.03.21~2025.03.23","status":"대회완료"},
 {"name":"제60회 전국남녀 중고등학교 스피드스케이팅대회","location":"태릉국제스케이트장","period":"2025.03.28~2025.03.30","status":"대회완료"},
-{"name":"2025 스피드스케이팅 공인기록회","location":"태릉국제스케이트장","period":"2025.10.01~2025.10.02","status":"대회완료","juwon":true},
+{"name":"2025 스피드스케이팅 공인기록회","location":"태릉국제스케이트장","period":"2025.10.01~2025.10.02","status":"대회완료"},
 {"name":"제60회 전국남녀 종목별 스피드스케이팅 선수권대회","location":"태릉국제스케이트장","period":"2025.10.13~2025.10.15","status":"대회완료"},
 {"name":"제56회 회장배 전국남녀 스피드스케이팅대회","location":"태릉국제스케이트장","period":"2025.10.24~2025.10.26","status":"대회완료"},
 {"name":"2026 주니어 스피드스케이팅 선수권대회","location":"태릉국제스케이트장","period":"2025.11.01~2025.11.02","status":"대회완료"},
-{"name":"제25회 전국남녀 꿈나무 스피드스케이팅대회","location":"태릉국제스케이트장","period":"2025.11.15~2025.11.15","status":"대회완료","juwon":true},
+{"name":"제25회 전국남녀 꿈나무 스피드스케이팅대회","location":"태릉국제스케이트장","period":"2025.11.15~2025.11.15","status":"대회완료"},
 {"name":"제80회 전국남녀 종합 스피드스케이팅 선수권대회","location":"태릉국제스케이트장","period":"2025.12.26~2025.12.27","status":"대회완료"},
 ];
 
@@ -660,10 +663,16 @@ function renderCal(){
         const endDate=new Date(e.period.split('~')[1].replace(/\./g,'-'));
         const isActive=startDate<=today&&endDate>=today;
         const isPast=endDate<today;
-        const isJuwon=e.juwon;
+        // 현재 선택된 선수의 대회 기록에서 출전 여부 확인
+        const skd=ALL_SKATER_DATA[currentSkater];
+        const skRecords=skd?Object.values(skd.results||{}).flat():[];
+        const participated=skRecords.some(r=>{
+            const rd=r.date?.replace(/-/g,'.');
+            return rd>=e.period.split('~')[0]&&rd<=e.period.split('~')[1];
+        });
 
         let cls='cal-card';
-        if(isJuwon) cls+=' juwon';
+        if(participated) cls+=' juwon';
         else if(isActive) cls+=' active';
         else if(isPast) cls+=' past';
 
@@ -678,7 +687,7 @@ function renderCal(){
 
         return`<div class="${cls}">
             <div class="cal-date">${e.period}</div>
-            <div class="cal-name">${e.name}${isJuwon?'<span class="cal-badge">주원 출전</span>':''}</div>
+            <div class="cal-name">${e.name}${participated?`<span class="cal-badge">${skd?.name||'선수'} 출전</span>`:''}</div>
             <div class="cal-loc">${e.location}</div>
             <span class="cal-status ${statusCls}">${statusText}</span>
             ${links}
