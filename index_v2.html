@@ -900,14 +900,29 @@ function buildPrompt(){
     return prompt;
 }
 
-async function aiAnalysis(service){
+async function aiAnalysis(service,forceNew=false){
     const prompt=buildPrompt();
     if(!prompt){alert('선수를 먼저 선택해주세요');return}
     const preview=document.getElementById('aiPromptPreview');
+    const cacheKey='ai_result_'+currentSkater+'_'+service;
+
+    // 캐시된 결과 확인 (같은 선수 + 같은 AI)
+    if(!forceNew){
+        const cached=localStorage.getItem(cacheKey);
+        if(cached){
+            const data=JSON.parse(cached);
+            preview.innerHTML=`<div class="analysis" style="margin-top:16px">
+                <h3>${service.toUpperCase()} 분석 결과 <span style="font-size:0.7em;color:var(--dim)">(${data.date} 캐시)</span></h3>
+                <div style="white-space:pre-wrap;line-height:1.8;margin-top:12px">${data.result.replace(/\n/g,'<br>')}</div>
+                <button onclick="aiAnalysis('${service}',true)" style="margin-top:12px;padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;font-size:0.85em">다시 분석 (API 호출)</button>
+            </div>`;
+            return;
+        }
+    }
 
     const apiKey=localStorage.getItem('ai_api_key_'+service);
     if(apiKey){
-        preview.innerHTML=`<div class="loading"><div class="spinner"></div><br>${service.toUpperCase()} 분석 중...</div>`;
+        preview.innerHTML=`<div class="loading"><div class="spinner"></div><br>${service.toUpperCase()} 분석 중... (API 호출)</div>`;
         try{
             let result='';
             if(service==='claude'){
@@ -927,7 +942,13 @@ async function aiAnalysis(service){
                 const d=await r.json();
                 result=d.choices?.[0]?.message?.content||d.error?.message||'오류';
             }
-            preview.innerHTML=`<div class="analysis" style="margin-top:16px"><h3>${service.toUpperCase()} 분석 결과</h3><div style="white-space:pre-wrap;line-height:1.8;margin-top:12px">${result.replace(/\n/g,'<br>')}</div></div>`;
+            // 결과 캐시 저장
+            localStorage.setItem(cacheKey,JSON.stringify({result,date:new Date().toLocaleString('ko-KR')}));
+            preview.innerHTML=`<div class="analysis" style="margin-top:16px">
+                <h3>${service.toUpperCase()} 분석 결과</h3>
+                <div style="white-space:pre-wrap;line-height:1.8;margin-top:12px">${result.replace(/\n/g,'<br>')}</div>
+                <button onclick="aiAnalysis('${service}',true)" style="margin-top:12px;padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;font-size:0.85em">다시 분석 (API 호출)</button>
+            </div>`;
         }catch(e){
             preview.innerHTML=`<div style="color:var(--red);padding:20px">API 오류: ${e.message}. API 키를 확인해주세요.</div>`;
         }
