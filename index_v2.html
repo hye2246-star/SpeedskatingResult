@@ -256,12 +256,36 @@ tr:hover { background: rgba(51,65,85,0.3); }
     <!-- AI 분석 -->
     <div class="section" id="ai-analysis">
         <h2>AI 분석 <span>(선수 기록 기반)</span></h2>
-        <p style="color:var(--muted);margin-bottom:16px">선택된 선수의 기록 데이터를 AI에게 분석 요청합니다. 버튼을 누르면 프롬프트가 클립보드에 복사되고 AI 사이트가 열립니다.</p>
-        <div style="display:flex;gap:12px;flex-wrap:wrap">
-            <button onclick="aiAnalysis('claude')" style="padding:14px 28px;border-radius:12px;border:none;background:#d97706;color:#fff;font-size:1em;cursor:pointer;font-weight:700;display:flex;align-items:center;gap:8px">Claude로 분석</button>
-            <button onclick="aiAnalysis('chatgpt')" style="padding:14px 28px;border-radius:12px;border:none;background:#10a37f;color:#fff;font-size:1em;cursor:pointer;font-weight:700;display:flex;align-items:center;gap:8px">ChatGPT로 분석</button>
-            <button onclick="aiAnalysis('gemini')" style="padding:14px 28px;border-radius:12px;border:none;background:#4285f4;color:#fff;font-size:1em;cursor:pointer;font-weight:700;display:flex;align-items:center;gap:8px">Gemini로 분석</button>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+            <button onclick="aiAnalysis('claude')" style="padding:14px 28px;border-radius:12px;border:none;background:#d97706;color:#fff;font-size:1em;cursor:pointer;font-weight:700">Claude 분석</button>
+            <button onclick="aiAnalysis('chatgpt')" style="padding:14px 28px;border-radius:12px;border:none;background:#10a37f;color:#fff;font-size:1em;cursor:pointer;font-weight:700">ChatGPT 분석</button>
+            <button onclick="aiAnalysis('gemini')" style="padding:14px 28px;border-radius:12px;border:none;background:#4285f4;color:#fff;font-size:1em;cursor:pointer;font-weight:700">Gemini 분석</button>
+            <button onclick="aiAnalysis('grok')" style="padding:14px 28px;border-radius:12px;border:none;background:#1d1d1d;color:#fff;font-size:1em;cursor:pointer;font-weight:700;border:1px solid #555">Grok 분석</button>
+            <button onclick="copyPrompt()" style="padding:14px 28px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:1em;cursor:pointer">프롬프트 복사</button>
         </div>
+        <details style="background:var(--card);border-radius:10px;padding:12px;border:1px solid var(--border);margin-bottom:16px">
+            <summary style="cursor:pointer;color:var(--muted);font-size:0.9em">API 키 설정 (한 번만 입력하면 브라우저에 저장)</summary>
+            <div style="display:grid;gap:10px;margin-top:12px">
+                <div style="display:flex;gap:8px;align-items:center">
+                    <span style="min-width:80px;color:#d97706;font-weight:600">Claude</span>
+                    <input type="password" id="key_claude" placeholder="sk-ant-..." style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:0.9em">
+                </div>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <span style="min-width:80px;color:#10a37f;font-weight:600">ChatGPT</span>
+                    <input type="password" id="key_chatgpt" placeholder="sk-proj-..." style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:0.9em">
+                </div>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <span style="min-width:80px;color:#4285f4;font-weight:600">Gemini</span>
+                    <input type="password" id="key_gemini" placeholder="AIza..." style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:0.9em">
+                </div>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <span style="min-width:80px;color:#888;font-weight:600">Grok</span>
+                    <input type="password" id="key_grok" placeholder="xai-..." style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:0.9em">
+                </div>
+                <button onclick="saveAllKeys()" style="padding:10px;border-radius:8px;border:none;background:var(--blue);color:#fff;cursor:pointer;font-weight:600">키 저장</button>
+                <div id="keySaveMsg" style="font-size:0.85em;color:var(--dim)"></div>
+            </div>
+        </details>
         <div id="aiPromptPreview" style="margin-top:16px"></div>
     </div>
 
@@ -898,6 +922,10 @@ async function aiAnalysis(service){
                 const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+apiKey,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
                 const d=await r.json();
                 result=d.candidates?.[0]?.content?.parts?.[0]?.text||d.error?.message||'오류';
+            }else if(service==='grok'){
+                const r=await fetch('https://api.x.ai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},body:JSON.stringify({model:'grok-3-mini',messages:[{role:'user',content:prompt}]})});
+                const d=await r.json();
+                result=d.choices?.[0]?.message?.content||d.error?.message||'오류';
             }
             preview.innerHTML=`<div class="analysis" style="margin-top:16px"><h3>${service.toUpperCase()} 분석 결과</h3><div style="white-space:pre-wrap;line-height:1.8;margin-top:12px">${result.replace(/\n/g,'<br>')}</div></div>`;
         }catch(e){
@@ -923,6 +951,21 @@ function saveApiKey(service){
     localStorage.setItem('ai_api_key_'+service,key);
     aiAnalysis(service);
 }
+
+function saveAllKeys(){
+    ['claude','chatgpt','gemini','grok'].forEach(s=>{
+        const val=document.getElementById('key_'+s)?.value?.trim();
+        if(val)localStorage.setItem('ai_api_key_'+s,val);
+    });
+    document.getElementById('keySaveMsg').innerHTML='<span style="color:var(--green)">저장 완료! 이제 분석 버튼을 누르세요.</span>';
+}
+
+// Load saved keys into inputs
+['claude','chatgpt','gemini','grok'].forEach(s=>{
+    const saved=localStorage.getItem('ai_api_key_'+s);
+    const el=document.getElementById('key_'+s);
+    if(saved&&el)el.value=saved;
+});
 
 function copyPrompt(){
     const prompt=buildPrompt();
