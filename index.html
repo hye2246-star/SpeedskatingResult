@@ -932,6 +932,7 @@ function renderSlots(){
     el.innerHTML=cmpSkaters.map((s,i)=>
         `<div class="cmp-slot filled" style="border-color:${CMP_COLORS[i]}">
             <div class="slot-name" style="color:${CMP_COLORS[i]}">${s.name}</div>
+            <div style="font-size:0.8em;color:var(--dim)">${ALL_SKATER_DATA[s.id]?.team||SKATER_LIST.find(x=>x.id===s.id)?.team||''}</div>
             <div class="slot-info">ID: ${s.id}</div>
             ${i>0?`<div class="slot-remove" onclick="removeSkater(${i})">X 제거</div>`:''}
         </div>`
