@@ -300,20 +300,18 @@ function ft(s){if(s>=60){const m=Math.floor(s/60);return m+':'+(s-m*60).toFixed(
 
 let SD={},curDist=500,gChart,pChart,vChart;
 
-const PROXIES=['https://api.allorigins.win/raw?url=','https://corsproxy.io/?'];
-let proxyIdx=0;
+let ALL_SKATER_DATA={};  // 로컬 JSON에서 로드
+
+async function loadSkaterDB(){
+    try{
+        const r=await fetch('skaters_data.json');
+        if(r.ok) ALL_SKATER_DATA=await r.json();
+        console.log('Loaded',Object.keys(ALL_SKATER_DATA).length,'skaters from local JSON');
+    }catch(e){console.log('Local JSON not found, using embedded data only')}
+}
 
 async function fj(u){
-    // Direct first
     try{const r=await fetch(u,{signal:AbortSignal.timeout(5000)});if(r.ok)return await r.json()}catch(e){}
-    // Try proxies
-    for(let i=0;i<PROXIES.length;i++){
-        try{
-            const px=PROXIES[(proxyIdx+i)%PROXIES.length];
-            const r=await fetch(px+encodeURIComponent(u),{signal:AbortSignal.timeout(8000)});
-            if(r.ok){proxyIdx=(proxyIdx+i)%PROXIES.length;return await r.json()}
-        }catch(e){}
-    }
     return null;
 }
 
@@ -357,22 +355,19 @@ const EMBEDDED_DATA={
 };
 
 async function init(){
-    // 먼저 내장 데이터 로드 (즉시 표시)
-    SD.pr=EMBEDDED_DATA.pr;
-    DISTS.forEach(d=>{SD[d]=EMBEDDED_DATA[d]||[]});
-    render();
+    // 로컬 JSON 로드
+    await loadSkaterDB();
 
-    // 백그라운드에서 API 시도 (성공하면 업데이트)
-    try{
-        const spr=await fj(`${API}/personal_records.php?skater=${SKATER}`);
-        if(spr?.records){
-            SD.pr=spr;
-            const sr=await Promise.all(DISTS.map(d=>fj(`${API}/skater_results.php?skater=${SKATER}&distance=${d}`)));
-            DISTS.forEach((d,i)=>{if(sr[i]?.results)SD[d]=sr[i].results});
-            render();
-            document.getElementById('lastUpdate').textContent='업데이트: '+new Date().toLocaleString('ko-KR')+' (API 실시간)';
-        }
-    }catch(e){}
+    // 주원이 데이터: 로컬 JSON > 내장 데이터
+    const jwData=ALL_SKATER_DATA[SKATER];
+    if(jwData){
+        SD.pr=jwData.pr;
+        DISTS.forEach(d=>{SD[d]=jwData.results?.[d]||[]});
+    } else {
+        SD.pr=EMBEDDED_DATA.pr;
+        DISTS.forEach(d=>{SD[d]=EMBEDDED_DATA[d]||[]});
+    }
+    render();
 }
 
 function render(){
@@ -683,8 +678,21 @@ async function addSkater(id,name){
     if(cmpSkaters.length>=5)return;
     if(cmpSkaters.find(s=>s.id===id))return;
     document.getElementById('cmpResults').innerHTML='';
-    document.getElementById('cmpName').value='';
+    const nameInput=document.getElementById('cmpName');
+    if(nameInput)nameInput.value='';
 
+    // 로컬 JSON에서 먼저 찾기
+    const local=ALL_SKATER_DATA[id];
+    if(local){
+        const skater={id,name,pr:local.pr,data:{}};
+        DISTS.forEach(d=>{skater.data[d]=local.results?.[d]||[]});
+        cmpSkaters.push(skater);
+        renderSlots();
+        renderComparison();
+        return;
+    }
+
+    // 로컬에 없으면 API 시도
     const[pr,...dists]=await Promise.all([
         fj(`${API}/personal_records.php?skater=${id}`),
         ...DISTS.map(d=>fj(`${API}/skater_results.php?skater=${id}&distance=${d}`))
