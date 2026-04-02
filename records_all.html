@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>조주원 전체 경기 기록</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; background: #0f172a; color: #e2e8f0; }
+
+.header { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 40px 20px; text-align: center; border-bottom: 3px solid #3b82f6; }
+.header h1 { font-size: 2.2em; color: #fff; margin-bottom: 8px; }
+.header .subtitle { color: #94a3b8; font-size: 1.1em; }
+.header .badge { display: inline-block; background: #3b82f6; color: #fff; padding: 4px 12px; border-radius: 20px; font-size: 0.85em; margin: 4px; }
+.header .stats { margin-top: 16px; color: #64748b; font-size: 0.95em; }
+
+.container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+/* PR Cards */
+.pr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin: 30px 0; }
+.pr-card { background: #1e293b; border-radius: 16px; padding: 24px; text-align: center; border: 1px solid #334155; transition: transform 0.2s; }
+.pr-card:hover { transform: translateY(-4px); border-color: #3b82f6; }
+.pr-card .dist { font-size: 1.1em; color: #94a3b8; margin-bottom: 8px; }
+.pr-card .time { font-size: 1.8em; font-weight: bold; }
+.pr-card .date { font-size: 0.8em; color: #64748b; margin-top: 6px; }
+.pr-card.c500 .time { color: #ef4444; }
+.pr-card.c1000 .time { color: #3b82f6; }
+.pr-card.c1500 .time { color: #22c55e; }
+.pr-card.c2000 .time { color: #f97316; }
+.pr-card.c3000 .time { color: #f59e0b; }
+.pr-card.cmass .time { color: #a855f7; }
+
+/* Section */
+.section { margin: 40px 0; }
+.section h2 { font-size: 1.5em; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #334155; }
+.section h2 span { color: #3b82f6; }
+
+/* Filter */
+.filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+.filter-btn { background: #1e293b; color: #94a3b8; border: 1px solid #334155; padding: 8px 18px; border-radius: 20px; cursor: pointer; font-size: 0.9em; transition: all 0.2s; }
+.filter-btn:hover, .filter-btn.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
+th { background: #334155; color: #94a3b8; padding: 12px 16px; text-align: left; font-size: 0.9em; }
+td { padding: 12px 16px; border-bottom: 1px solid #293548; font-size: 0.95em; }
+tr:last-child td { border-bottom: none; }
+tr:hover { background: #293548; }
+.highlight { color: #ef4444; font-weight: bold; }
+.improvement { color: #22c55e; font-size: 0.85em; }
+
+.medal { display: inline-block; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-size: 0.8em; font-weight: bold; }
+.medal.gold { background: #f59e0b; color: #1e293b; }
+.medal.silver { background: #94a3b8; color: #1e293b; }
+.medal.bronze { background: #cd7f32; color: #1e293b; }
+.rank-good { color: #22c55e; font-weight: bold; }
+
+/* Tournament Card */
+.tournament-card { background: #1e293b; border-radius: 16px; padding: 24px; margin-bottom: 16px; border: 1px solid #334155; border-left: 4px solid #3b82f6; }
+.tournament-card h3 { font-size: 1.2em; margin-bottom: 6px; }
+.tournament-card .meta { color: #64748b; font-size: 0.9em; margin-bottom: 12px; }
+.tournament-card .results { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.result-item { background: #293548; border-radius: 10px; padding: 14px; text-align: center; }
+.result-item .event-name { color: #94a3b8; font-size: 0.85em; margin-bottom: 6px; }
+.result-item .record { font-size: 1.3em; font-weight: bold; color: #e2e8f0; }
+.result-item .rank-badge { margin-top: 6px; font-size: 0.85em; }
+
+/* Summary Stats */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin: 20px 0; }
+.stat-card { background: #1e293b; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #334155; }
+.stat-card .number { font-size: 2em; font-weight: bold; color: #3b82f6; }
+.stat-card .label { color: #94a3b8; font-size: 0.85em; margin-top: 4px; }
+
+/* Footer */
+.footer { text-align: center; padding: 30px; color: #475569; font-size: 0.85em; border-top: 1px solid #1e293b; margin-top: 40px; }
+
+@media (max-width: 768px) {
+    .pr-grid { grid-template-columns: repeat(2, 1fr); }
+    .header h1 { font-size: 1.5em; }
+    .tournament-card .results { grid-template-columns: 1fr; }
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h1>조주원 전체 경기 기록</h1>
+    <div class="subtitle">강명중학교 1학년 | 스피드스케이팅</div>
+    <div style="margin-top: 12px;">
+        <span class="badge">500m PR 44.39</span>
+        <span class="badge">1000m PR 1:29.25</span>
+        <span class="badge">1500m PR 2:15.53</span>
+        <span class="badge">3000m PR 4:46.00</span>
+    </div>
+    <div class="stats">2023.10 ~ 2026.03 | 총 17개 대회 50경기</div>
+</div>
+
+<div class="container">
+
+    <!-- 요약 통계 -->
+    <div class="section">
+        <h2>요약 <span>통계</span></h2>
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="number">17</div>
+                <div class="label">참가 대회</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">50</div>
+                <div class="label">총 경기</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">4</div>
+                <div class="label">🥇 1위</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">9</div>
+                <div class="label">🥈 2위</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">5</div>
+                <div class="label">🥉 3위</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">18</div>
+                <div class="label">메달 합계</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PR Cards -->
+    <div class="section">
+        <h2>개인 최고 기록 <span>(Personal Records)</span></h2>
+        <div class="pr-grid">
+            <div class="pr-card c500">
+                <div class="dist">500m</div>
+                <div class="time">44.39</div>
+                <div class="date">2026.03.27<br>전국 중고등학교대회</div>
+            </div>
+            <div class="pr-card c1000">
+                <div class="dist">1000m</div>
+                <div class="time">1:29.25</div>
+                <div class="date">2026.03.28<br>전국 중고등학교대회</div>
+            </div>
+            <div class="pr-card c1500">
+                <div class="dist">1500m</div>
+                <div class="time">2:15.53</div>
+                <div class="date">2026.03.21<br>빙상인추모대회</div>
+            </div>
+            <div class="pr-card c2000">
+                <div class="dist">2000m</div>
+                <div class="time">3:06.77</div>
+                <div class="date">2025.10.25<br>회장배대회</div>
+            </div>
+            <div class="pr-card c3000">
+                <div class="dist">3000m</div>
+                <div class="time">4:46.00</div>
+                <div class="date">2026.01.04<br>종별종합선수권</div>
+            </div>
+            <div class="pr-card cmass">
+                <div class="dist">매스스타트</div>
+                <div class="time">5:33.43</div>
+                <div class="date">2025.01.15<br>전국동계체육대회</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 대회별 기록 -->
+    <div class="section">
+        <h2>대회별 <span>전체 기록</span></h2>
+
+        <!-- 2026 시즌 -->
+        <h3 style="color: #3b82f6; font-size: 1.3em; margin: 30px 0 16px; padding-left: 10px; border-left: 3px solid #3b82f6;">2026 시즌 (중학부)</h3>
+
+        <div class="tournament-card">
+            <h3>제61회 전국남녀 중고등학교 스피드스케이팅대회</h3>
+            <div class="meta">2026.03.27 ~ 03.28 | 여자중학부</div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="event-name">500M</div>
+                    <div class="record" style="color:#ef4444;">44.39</div>
+                    <div class="rank-badge">8위 <span class="improvement">(PR!)</span></div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">1000M</div>
+                    <div class="record" style="color:#3b82f6;">1:29.25</div>
+                    <div class="rank-badge">12위 <span class="improvement">(PR!)</span></div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">매스스타트</div>
+                    <div class="record" style="color:#a855f7;">6:53.79</div>
+                    <div class="rank-badge"><span class="medal bronze">3</span> <span class="rank-good">3위 🥉</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tournament-card">
+            <h3>제61회 빙상인추모 전국남녀 스피드스케이팅대회</h3>
+            <div class="meta">2026.03.21 ~ 03.22 | 여자중학부</div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="event-name">1500M</div>
+                    <div class="record" style="color:#22c55e;">2:15.53</div>
+                    <div class="rank-badge">9위 <span class="improvement">(PR!)</span></div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">3000M</div>
+                    <div class="record" style="color:#f59e0b;">4:47.93</div>
+                    <div class="rank-badge">8위</div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">매스스타트</div>
+                    <div class="record" style="color:#a855f7;">6:56.05</div>
+                    <div class="rank-badge">6위</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tournament-card">
+            <h3>제58회 백곰배 전국초등학교 스피드스케이팅대회</h3>
+            <div class="meta">2026.01.25 | 여자초등6학년</div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="event-name">500M</div>
+                    <div class="record" style="color:#ef4444;">49.53</div>
+                    <div class="rank-badge"><span class="medal silver">2</span> <span class="rank-good">2위 🥈</span></div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">1500M</div>
+                    <div class="record" style="color:#22c55e;">3:36.57</div>
+                    <div class="rank-badge"><span class="medal gold">1</span> <span class="rank-good">1위 🥇</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tournament-card">
+            <h3>2026 전국남녀 종별종합 스피드스케이팅 선수권대회</h3>
+            <div class="meta">2026.01.03 ~ 01.04 | 여자초등부</div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="event-name">500M</div>
+                    <div class="record" style="color:#ef4444;">45.37</div>
+                    <div class="rank-badge">7위</div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">1000M</div>
+                    <div class="record" style="color:#3b82f6;">1:30.50</div>
+                    <div class="rank-badge"><span class="medal silver">2</span> <span class="rank-good">2위 🥈</span></div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">1500M</div>
+                    <div class="record" style="color:#22c55e;">2:15.78</div>
+                    <div class="rank-badge"><span class="medal silver">2</span> <span class="rank-good">2위 🥈</span></div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">3000M</div>
+                    <div class="record" style="color:#f59e0b;">4:46.00</div>
+                    <div class="rank-badge"><span class="medal silver">2</span> <span class="rank-good">2위 🥈</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2025 시즌 -->
+        <h3 style="color: #22c55e; font-size: 1.3em; margin: 30px 0 16px; padding-left: 10px; border-left: 3px solid #22c55e;">2025 시즌 (초등부)</h3>
+
+        <div class="tournament-card">
+            <h3>제25회 전국남녀 꿈나무 스피드스케이팅대회</h3>
+            <div class="meta">2025.11.15 | 여자초등5,6학년</div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="event-name">500M</div>
+                    <div class="record" style="color:#ef4444;">46.99</div>
+                    <div class="rank-badge">7위</div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">1000M</div>
+                    <div class="record" style="color:#3b82f6;">1:32.53</div>
+                    <div class="rank-badge"><span class="medal silver">2</span> <span class="rank-good">2위 🥈</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tournament-card">
+            <h3>제56회 회장배 전국남녀 스피드스케이팅대회</h3>
+            <div class="meta">2025.10.25 ~ 10.26 | 여자초등5,6학년</div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="event-name">2000M</div>
+                    <div class="record" style="color:#f97316;">3:06.77</div>
+                    <div class="rank-badge"><span class="medal silver">2</span> <span class="rank-good">2위 🥈</span></div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">1500M</div>
+                    <div class="record" style="color:#22c55e;">2:19.13</div>
+                    <div class="rank-badge"><span class="medal bronze">3</span> <span class="rank-good">3위 🥉</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tournament-card">
+            <h3>2025 스피드스케이팅 공인기록회</h3>
+            <div class="meta">2025.10.01 | 여자부</div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="event-name">1500M</div>
+                    <div class="record" style="color:#22c55e;">2:19.59</div>
+                    <div class="rank-badge">30위 (전체 여자부)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tournament-card">
+            <h3>제38회 전국남녀 초등학교 스피드스케이팅대회</h3>
+            <div class="meta">2025.03.28 ~ 03.29 | 여자초등6학년</div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="event-name">500M</div>
+                    <div class="record" style="color:#ef4444;">45.76</div>
+                    <div class="rank-badge"><span class="medal gold">1</span> <span class="rank-good">1위 🥇</span></div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">1000M</div>
+                    <div class="record" style="color:#3b82f6;">1:31.55</div>
+                    <div class="rank-badge"><span class="medal silver">2</span> <span class="rank-good">2위 🥈</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tournament-card">
+            <h3>제60회 빙상인추모 전국남녀 스피드스케이팅대회</h3>
+            <div class="meta">2025.03.22 ~ 03.23 | 여자초등5,6학년</div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="event-name">1000M</div>
+                    <div class="record" style="color:#3b82f6;">1:32.54</div>
+                    <div class="rank-badge"><span class="medal silver">2</span> <span class="rank-good">2위 🥈</span></div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">1500M</div>
+                    <div class="record" style="color:#22c55e;">2:21.38</div>
+                    <div class="rank-badge"><span class="medal gold">1</span> <span class="rank-good">1위 🥇</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tournament-card">
+            <h3>제57회 백곰배 전국초등학교 스피드스케이팅대회</h3>
+            <div class="meta">2025.01.19 ~ 01.20 | 여자초등5학년</div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="event-name">500M</div>
+                    <div class="record" style="color:#ef4444;">50.36</div>
+                    <div class="rank-badge"><span class="medal silver">2</span> <span class="rank-good">2위 🥈</span></div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">2000M</div>
+                    <div class="record" style="color:#f97316;">4:24.36</div>
+                    <div class="rank-badge"><span class="medal silver">2</span> <span class="rank-good">2위 🥈</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tournament-card">
+            <h3>제106회 전국동계체육대회</h3>
+            <div class="meta">2025.01.15 ~ 01.16 | 여자초등부</div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="event-name">500M</div>
+                    <div class="record" style="color:#ef4444;">45.97</div>
+                    <div class="rank-badge">5위</div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">1000M</div>
+                    <div class="record" style="color:#3b82f6;">1:32.91</div>
+                    <div class="rank-badge">6위</div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">매스스타트</div>
+                    <div class="record" style="color:#a855f7;">5:33.43</div>
+                    <div class="rank-badge">6위</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tournament-card">
+            <h3>2025 전국남녀 종별종합 스피드스케이팅 선수권대회</h3>
+            <div class="meta">2025.01.02 ~ 01.03 | 여자초등부</div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="event-name">500M</div>
+                    <div class="record" style="color:#ef4444;">46.86</div>
+                    <div class="rank-badge">9위</div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">1000M</div>
+                    <div class="record" style="color:#3b82f6;">1:38.07</div>
+                    <div class="rank-badge">12위</div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">1500M</div>
+                    <div class="record" style="color:#22c55e;">2:29.04</div>
+                    <div class="rank-badge">11위</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2024 시즌 -->
+        <h3 style="color: #f59e0b; font-size: 1.3em; margin: 30px 0 16px; padding-left: 10px; border-left: 3px solid #f59e0b;">2024 시즌 (초등부)</h3>
+
+        <div class="tournament-card">
+            <h3>제24회 전국남녀 꿈나무 스피드스케이팅대회</h3>
+            <div class="meta">2024.11.23 | 여자초등5,6학년</div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="event-name">500M</div>
+                    <div class="record" style="color:#ef4444;">47.57</div>
+                    <div class="rank-badge">5위</div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">1500M</div>
+                    <div class="record" style="color:#22c55e;">2:29.45</div>
+                    <div class="rank-badge">11위</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tournament-card">
+            <h3>제55회 회장배 전국남녀 스피드스케이팅대회</h3>
+            <div class="meta">2024.11.09 ~ 11.10 | 여자초등5,6학년</div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="event-name">1000M</div>
+                    <div class="record" style="color:#3b82f6;">1:34.23</div>
+                    <div class="rank-badge"><span class="medal bronze">3</span> <span class="rank-good">3위 🥉</span></div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">1500M</div>
+                    <div class="record" style="color:#22c55e;">2:26.33</div>
+                    <div class="rank-badge">7위</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tournament-card">
+            <h3>2024 스피드스케이팅 공인기록회</h3>
+            <div class="meta">2024.10.10 | 여자부</div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="event-name">1000M</div>
+                    <div class="record" style="color:#3b82f6;">1:36.77</div>
+                    <div class="rank-badge">38위 (전체 여자부)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tournament-card">
+            <h3>제37회 전국남녀 초등학교 스피드스케이팅대회</h3>
+            <div class="meta">2024.03.15 ~ 03.17 | 여자초등5학년</div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="event-name">500M</div>
+                    <div class="record" style="color:#ef4444;">47.57</div>
+                    <div class="rank-badge"><span class="medal gold">1</span> <span class="rank-good">1위 🥇</span></div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">1500M</div>
+                    <div class="record" style="color:#22c55e;">3:00.99</div>
+                    <div class="rank-badge"><span class="medal silver">2</span> <span class="rank-good">2위 🥈</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tournament-card">
+            <h3>제59회 빙상인추모 전국남녀 스피드스케이팅대회</h3>
+            <div class="meta">2024.03.09 ~ 03.10 | 여자초등5,6학년</div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="event-name">1500M</div>
+                    <div class="record" style="color:#22c55e;">2:31.28</div>
+                    <div class="rank-badge">9위</div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">2000M</div>
+                    <div class="record" style="color:#f97316;">4:19.17</div>
+                    <div class="rank-badge">5위</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tournament-card">
+            <h3>2024 전국남녀 종별종합 스피드스케이팅 선수권대회</h3>
+            <div class="meta">2024.02.24 ~ 02.25 | 여자초등부</div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="event-name">500M</div>
+                    <div class="record" style="color:#ef4444;">49.18</div>
+                    <div class="rank-badge">17위</div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">1000M</div>
+                    <div class="record" style="color:#3b82f6;">1:38.90</div>
+                    <div class="rank-badge">12위</div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">1500M</div>
+                    <div class="record" style="color:#22c55e;">2:35.36</div>
+                    <div class="rank-badge">18위</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tournament-card">
+            <h3>제105회 전국동계체육대회</h3>
+            <div class="meta">2024.01.11 ~ 01.12 | 여자초등부</div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="event-name">500M</div>
+                    <div class="record" style="color:#ef4444;">48.24</div>
+                    <div class="rank-badge">6위</div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">200M</div>
+                    <div class="record" style="color:#e2e8f0;">3:25.69</div>
+                    <div class="rank-badge">9위</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tournament-card">
+            <h3>제56회 백곰배 전국초등학교 스피드스케이팅대회</h3>
+            <div class="meta">2024.01.05 ~ 01.06 | 여자초등4학년</div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="event-name">1500M</div>
+                    <div class="record" style="color:#22c55e;">2:41.74</div>
+                    <div class="rank-badge"><span class="medal bronze">3</span> <span class="rank-good">3위 🥉</span></div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">2000M</div>
+                    <div class="record" style="color:#f97316;">5:45.73</div>
+                    <div class="rank-badge"><span class="medal bronze">3</span> <span class="rank-good">3위 🥉</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2023 시즌 -->
+        <h3 style="color: #a855f7; font-size: 1.3em; margin: 30px 0 16px; padding-left: 10px; border-left: 3px solid #a855f7;">2023 시즌 (초등부 - 데뷔)</h3>
+
+        <div class="tournament-card">
+            <h3>제23회 전국남녀 꿈나무 스피드스케이팅대회</h3>
+            <div class="meta">2023.12.09 | 여자초등3,4학년</div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="event-name">500M</div>
+                    <div class="record" style="color:#ef4444;">51.06</div>
+                    <div class="rank-badge">5위</div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">1500M</div>
+                    <div class="record" style="color:#22c55e;">2:45.03</div>
+                    <div class="rank-badge"><span class="medal silver">2</span> <span class="rank-good">2위 🥈</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tournament-card">
+            <h3>제54회 회장배 전국남녀 스피드스케이팅대회</h3>
+            <div class="meta">2023.11.01 ~ 11.02 | 여자초등3,4학년</div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="event-name">500M</div>
+                    <div class="record" style="color:#ef4444;">1:03.39</div>
+                    <div class="rank-badge">6위</div>
+                </div>
+                <div class="result-item">
+                    <div class="event-name">2000M</div>
+                    <div class="record" style="color:#f97316;">4:29.22</div>
+                    <div class="rank-badge"><span class="medal bronze">3</span> <span class="rank-good">3위 🥉</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tournament-card">
+            <h3>2023 스피드스케이팅 공인기록회</h3>
+            <div class="meta">2023.10.07 | 여자부 (첫 공식 대회)</div>
+            <div class="results">
+                <div class="result-item">
+                    <div class="event-name">500M</div>
+                    <div class="record" style="color:#ef4444;">57.22</div>
+                    <div class="rank-badge">44위 (전체 여자부)</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 종목별 기록 추이 -->
+    <div class="section">
+        <h2>500m <span>기록 추이</span></h2>
+        <table>
+            <tr><th>날짜</th><th>대회</th><th>카테고리</th><th>기록</th><th>순위</th></tr>
+            <tr><td>2023.10.07</td><td>공인기록회</td><td>여자부</td><td>57.22</td><td>44위</td></tr>
+            <tr><td>2023.11.01</td><td>회장배</td><td>초등3,4</td><td>1:03.39</td><td>6위</td></tr>
+            <tr><td>2023.12.09</td><td>꿈나무대회</td><td>초등3,4</td><td>51.06</td><td>5위</td></tr>
+            <tr><td>2024.01.11</td><td>전국동계체전</td><td>초등부</td><td>48.24</td><td>6위</td></tr>
+            <tr><td>2024.02.24</td><td>전국선수권</td><td>초등부</td><td>49.18</td><td>17위</td></tr>
+            <tr><td>2024.03.15</td><td>초등학교대회</td><td>초등5</td><td>47.57</td><td class="rank-good">1위 🥇</td></tr>
+            <tr><td>2024.11.23</td><td>꿈나무대회</td><td>초등5,6</td><td>47.57</td><td>5위</td></tr>
+            <tr><td>2025.01.02</td><td>전국선수권</td><td>초등부</td><td>46.86</td><td>9위</td></tr>
+            <tr><td>2025.01.15</td><td>전국동계체전</td><td>초등부</td><td>45.97</td><td>5위</td></tr>
+            <tr><td>2025.01.20</td><td>백곰배</td><td>초등5</td><td>50.36</td><td class="rank-good">2위 🥈</td></tr>
+            <tr><td>2025.03.28</td><td>초등학교대회</td><td>초등6</td><td>45.76</td><td class="rank-good">1위 🥇</td></tr>
+            <tr><td>2025.11.15</td><td>꿈나무대회</td><td>초등5,6</td><td>46.99</td><td>7위</td></tr>
+            <tr><td>2026.01.03</td><td>종별종합선수권</td><td>초등부</td><td>45.37</td><td>7위</td></tr>
+            <tr><td>2026.01.25</td><td>백곰배</td><td>초등6</td><td>49.53</td><td class="rank-good">2위 🥈</td></tr>
+            <tr><td>2026.03.27</td><td>중고등학교대회</td><td>중학부</td><td class="highlight">44.39 (PR)</td><td>8위</td></tr>
+        </table>
+        <p style="color:#64748b; font-size:0.9em;">총 성장: 57.22초 → 44.39초 = <strong style="color:#22c55e">12.83초 단축 (22.4%)</strong></p>
+    </div>
+
+    <div class="section">
+        <h2>1000m <span>기록 추이</span></h2>
+        <table>
+            <tr><th>날짜</th><th>대회</th><th>카테고리</th><th>기록</th><th>순위</th></tr>
+            <tr><td>2024.02.25</td><td>전국선수권</td><td>초등부</td><td>1:38.90</td><td>12위</td></tr>
+            <tr><td>2024.10.10</td><td>공인기록회</td><td>여자부</td><td>1:36.77</td><td>38위</td></tr>
+            <tr><td>2024.11.09</td><td>회장배</td><td>초등5,6</td><td>1:34.23</td><td class="rank-good">3위 🥉</td></tr>
+            <tr><td>2025.01.03</td><td>전국선수권</td><td>초등부</td><td>1:38.07</td><td>12위</td></tr>
+            <tr><td>2025.01.16</td><td>전국동계체전</td><td>초등부</td><td>1:32.91</td><td>6위</td></tr>
+            <tr><td>2025.03.22</td><td>빙상인추모</td><td>초등5,6</td><td>1:32.54</td><td class="rank-good">2위 🥈</td></tr>
+            <tr><td>2025.03.29</td><td>초등학교대회</td><td>초등6</td><td>1:31.55</td><td class="rank-good">2위 🥈</td></tr>
+            <tr><td>2025.11.15</td><td>꿈나무대회</td><td>초등5,6</td><td>1:32.53</td><td class="rank-good">2위 🥈</td></tr>
+            <tr><td>2026.01.04</td><td>종별종합선수권</td><td>초등부</td><td>1:30.50</td><td class="rank-good">2위 🥈</td></tr>
+            <tr><td>2026.03.28</td><td>중고등학교대회</td><td>중학부</td><td class="highlight">1:29.25 (PR)</td><td>12위</td></tr>
+        </table>
+        <p style="color:#64748b; font-size:0.9em;">총 성장: 1:38.90 → 1:29.25 = <strong style="color:#22c55e">9.65초 단축 (9.8%)</strong></p>
+    </div>
+
+    <div class="section">
+        <h2>1500m <span>기록 추이</span></h2>
+        <table>
+            <tr><th>날짜</th><th>대회</th><th>카테고리</th><th>기록</th><th>순위</th></tr>
+            <tr><td>2023.12.09</td><td>꿈나무대회</td><td>초등3,4</td><td>2:45.03</td><td class="rank-good">2위 🥈</td></tr>
+            <tr><td>2024.01.06</td><td>백곰배</td><td>초등4</td><td>2:41.74</td><td class="rank-good">3위 🥉</td></tr>
+            <tr><td>2024.02.24</td><td>전국선수권</td><td>초등부</td><td>2:35.36</td><td>18위</td></tr>
+            <tr><td>2024.03.09</td><td>빙상인추모</td><td>초등5,6</td><td>2:31.28</td><td>9위</td></tr>
+            <tr><td>2024.03.17</td><td>초등학교대회</td><td>초등5</td><td>3:00.99</td><td class="rank-good">2위 🥈</td></tr>
+            <tr><td>2024.11.10</td><td>회장배</td><td>초등5,6</td><td>2:26.33</td><td>7위</td></tr>
+            <tr><td>2024.11.23</td><td>꿈나무대회</td><td>초등5,6</td><td>2:29.45</td><td>11위</td></tr>
+            <tr><td>2025.01.02</td><td>전국선수권</td><td>초등부</td><td>2:29.04</td><td>11위</td></tr>
+            <tr><td>2025.03.23</td><td>빙상인추모</td><td>초등5,6</td><td>2:21.38</td><td class="rank-good">1위 🥇</td></tr>
+            <tr><td>2025.10.01</td><td>공인기록회</td><td>여자부</td><td>2:19.59</td><td>30위</td></tr>
+            <tr><td>2025.10.26</td><td>회장배</td><td>초등5,6</td><td>2:19.13</td><td class="rank-good">3위 🥉</td></tr>
+            <tr><td>2026.01.03</td><td>종별종합선수권</td><td>초등부</td><td>2:15.78</td><td class="rank-good">2위 🥈</td></tr>
+            <tr><td>2026.01.25</td><td>백곰배</td><td>초등6</td><td>3:36.57</td><td class="rank-good">1위 🥇</td></tr>
+            <tr><td>2026.03.21</td><td>빙상인추모</td><td>중학부</td><td class="highlight">2:15.53 (PR)</td><td>9위</td></tr>
+        </table>
+        <p style="color:#64748b; font-size:0.9em;">총 성장: 2:45.03 → 2:15.53 = <strong style="color:#22c55e">29.50초 단축 (17.9%)</strong></p>
+    </div>
+
+</div>
+
+<div class="footer">
+    <p>조주원 스피드스케이팅 전체 기록 | 데이터 기준: 2026.03.28</p>
+    <p>총 17개 대회 · 50경기 · 메달 18개 (🥇4 🥈9 🥉5)</p>
+</div>
+
+</body>
+</html>
